@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransGadget — Official Toy Collector Space</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS & JS (OpenStreetMap Engine - 100% Gratis Tanpa API Key) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .dynamic-bg {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        #map { 
+            z-index: 10; 
+            width: 100% !important;
+            height: 180px !important;
+        }
+    </style>
+</head>
+<body class="dynamic-bg text-slate-900 min-h-screen flex flex-col selection:bg-indigo-600 selection:text-white">
+
+    <!-- Top Announcement Bar -->
+    <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-[11px] font-bold py-2.5 px-4 tracking-wider uppercase text-center shadow-sm">
+        🧸 Real-Time Shipping Rates • 100% Original Collectible Toys & Board Games
+    </div>
+
+    <!-- Main Header -->
+    <header class="bg-white/85 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="navbar-brand d-flex align-items-center">
+            <img src="images/logo.png" alt="TransGadget Logo" style="height: 40px; width: auto; object-fit: contain;" class="me-2">
+                <span class="text-lg font-extrabold text-slate-900 tracking-tight hidden sm:inline">TransGadget Store</span>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md mx-8 hidden md:block">
+                <div class="relative">
+                    <input type="text" id="search-input" oninput="filterProducts()" placeholder="Cari Action Figure, mainan edukasi, board game..." class="w-full bg-slate-100/80 border border-slate-200 rounded-full px-5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 transition shadow-inner">
+                </div>
+            </div>
+
+            <!-- Cart Trigger & WhatsApp Button -->
+            <div class="flex items-center space-x-3">
+                <!-- Tombol WhatsApp CS -->
+                <a href="https://wa.me/6289633973285?text=Halo%20Admin%20TransGadget,%20saya%20ingin%20bertanya%20mengenai%20produk%20mainan." target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center space-x-2 shadow-md shadow-emerald-600/10" title="Hubungi WhatsApp Admin">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                    <span class="hidden sm:inline">WhatsApp</span>
+                </a>
+
+                <button onclick="toggleCartModal(true)" class="relative bg-slate-900 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center space-x-2 shadow-md shadow-slate-900/10">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span>Keranjang</span>
+                    <span id="cart-badge" class="bg-rose-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full hidden">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Category Navigation Bar -->
+        <nav class="border-t border-slate-100 bg-white/50 backdrop-blur-sm hidden md:block">
+            <div id="category-filters" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 text-xs font-bold uppercase tracking-widest py-3.5 text-slate-600 overflow-x-auto">
+                <button onclick="filterByCategory('Semua', this)" class="text-indigo-600 border-b-2 border-indigo-600 pb-1 whitespace-nowrap font-bold">Semua Mainan</button>
+                <button onclick="filterByCategory('Action Figure', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Action Figure</button>
+                <button onclick="filterByCategory('Board Game', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Board Game</button>
+                <button onclick="filterByCategory('Edukasi', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Mainan Edukasi</button>
+                <button onclick="filterByCategory('Gundam', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Gundam</button>
+                <button onclick="filterByCategory('Lego', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Lego</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b border-slate-200/80 pb-6 gap-4">
+            <div>
+                <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Koleksi Mainan</span>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight mt-2">Jelajahi Dunia Mainan</h1>
+            </div>
+            <span id="product-count" class="text-xs font-bold uppercase tracking-wider text-slate-600 bg-white/80 border border-slate-200 px-3.5 py-1.5 rounded-lg shadow-sm">Memuat...</span>
+        </div>
+
+        <!-- Grid Produk -->
+        <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+    </main>
+
+    <!-- Product Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity" onclick="toggleDetailModal(false)"></div>
+
+            <div class="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full z-10 p-6 sm:p-8 space-y-5 border border-slate-100">
+                <button onclick="toggleDetailModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm z-20 transition">✕</button>
+
+                <div class="relative w-full aspect-square bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center">
+                    <img id="detail-slider-img" src="" alt="Foto Produk" class="w-full h-full object-contain transition-all duration-300">
+                    <button id="slider-prev" onclick="changeSlide(-1)" class="absolute left-3 bg-white/20 hover:bg-white/40 text-white rounded-full p-2.5 backdrop-blur-sm transition">❮</button>
+                    <button id="slider-next" onclick="changeSlide(1)" class="absolute right-3 bg-white/20 hover:bg-white/40 text-white rounded-full p-2.5 backdrop-blur-sm transition">❯</button>
+                    <span id="slider-counter" class="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-bold px-3 py-1 rounded-full backdrop-blur-sm">1 / 1</span>
+                </div>
+
+                <div id="detail-thumbnails" class="flex gap-2 overflow-x-auto pb-1"></div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between items-start">
+                        <span id="modal-product-status" class="text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"></span>
+                        <span id="modal-product-stock" class="text-xs font-semibold text-slate-500"></span>
+                    </div>
+                    
+                    <h2 id="modal-product-name" class="text-xl font-extrabold text-slate-900 tracking-tight"></h2>
+                    <div class="flex items-center justify-between">
+                        <div id="modal-product-price" class="text-2xl font-black text-indigo-600"></div>
+                        <span id="modal-product-weight" class="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg"></span>
+                    </div>
+
+                    <!-- Informasi Total Sudah Dibeli (Statistik Produk) -->
+                    <div class="flex items-center justify-between bg-indigo-50/50 border border-indigo-100/80 px-3.5 py-2 rounded-xl text-xs">
+                        <span class="font-bold text-slate-600 uppercase tracking-wider">📦 Total Sudah Dibeli:</span>
+                        <span id="modal-product-sold" class="font-extrabold text-indigo-600">0 terjual</span>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Deskripsi Mainan</h4>
+                        <p id="modal-product-desc" class="text-slate-600 text-xs leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100 max-h-32 overflow-y-auto"></p>
+                    </div>
+
+                    <div class="pt-2 flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Jumlah Beli</span>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="updateModalQuantity(-1)" class="w-8 h-8 bg-white border border-slate-200 rounded-xl font-extrabold text-slate-700 hover:bg-slate-100 transition flex items-center justify-center">-</button>
+                            <span id="modal-quantity" class="text-sm font-extrabold text-slate-900 w-6 text-center">1</span>
+                            <button onclick="updateModalQuantity(1)" class="w-8 h-8 bg-white border border-slate-200 rounded-xl font-extrabold text-slate-700 hover:bg-slate-100 transition flex items-center justify-center">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="modal-add-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-600/25">
+                    Masukkan ke Keranjang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Slide-Over Modal -->
+    <div id="cart-modal" class="fixed inset-0 z-50 overflow-hidden hidden">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="toggleCartModal(false)"></div>
+        <div class="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+                <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+                    <h2 class="text-base font-bold text-slate-900">Keranjang Belanja</h2>
+                    <button onclick="toggleCartModal(false)" class="text-slate-400 hover:text-slate-600 text-sm font-bold">✕</button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Item Pesanan</h3>
+                        <div id="cart-items-container" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Form Pengiriman & Cek Ongkir -->
+                    <div id="checkout-form-container" class="pt-4 border-t border-slate-200 space-y-4 text-xs">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                            📍 Informasi Pengiriman & Cek Ongkir
+                        </h3>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Nama Lengkap Penerima</label>
+                            <input type="text" id="cust-name" required placeholder="Contoh: Budi Santoso" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Nomor WhatsApp / Telepon</label>
+                            <input type="tel" id="cust-phone" required placeholder="Contoh: 081234567890" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <!-- Kota/Kabupaten Custom Autocomplete Search -->
+                        <div class="relative">
+                            <label class="block font-bold text-slate-700 mb-1">Kota / Kabupaten Tujuan</label>
+                            <input type="text" 
+                                   id="cust-city-input" 
+                                   onkeyup="filterCityDropdown()" 
+                                   onfocus="showCityDropdown()"
+                                   placeholder="Ketik nama kota/kabupaten (misal: Bandung)..." 
+                                   autocomplete="off"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                            
+                            <!-- Custom Dropdown Container -->
+                            <div id="city-dropdown" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden"></div>
+                            
+                            <!-- Hidden Input ID Kota untuk RajaOngkir -->
+                            <input type="hidden" id="cust-city" value="">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Kecamatan</label>
+                                <input type="text" id="cust-district" onchange="autoSyncAddressToMap()" required placeholder="Contoh: Gambir" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Kelurahan / Desa</label>
+                                <input type="text" id="cust-subdistrict" onchange="autoSyncAddressToMap()" required placeholder="Contoh: Petojo Selatan" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Kode Pos</label>
+                            <input type="text" id="cust-postal" required placeholder="Contoh: 10110" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Alamat Lengkap (Jalan, RT/RW, No. Rumah)</label>
+                            <textarea id="cust-address" rows="2" onchange="autoSyncAddressToMap()" required placeholder="Jl. Merdeka No. 12, RT 01/RW 02" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500"></textarea>
+                        </div>
+
+                        <!-- Modul Maps Interaktif -->
+                        <div class="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-3.5 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <label class="block font-bold text-indigo-900 text-[11px] uppercase tracking-wider">🗺️ Titik Presisi Maps (Otomatis)</label>
+                                <button type="button" onclick="getCurrentLocation()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition shadow-sm">
+                                    📍 Lacak GPS Saya
+                                </button>
+                            </div>
+
+                            <!-- Input Cari Lokasi Manual Tambahan -->
+                            <div class="flex gap-2">
+                                <input type="text" id="map-search-input" placeholder="Cari nama jalan / gedung / perumahan..." class="flex-1 bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
+                                <button type="button" onclick="searchLocationOnMap()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                                    Cari
+                                </button>
+                            </div>
+
+                            <div id="map" class="w-full rounded-xl border border-indigo-200/80 shadow-inner overflow-hidden"></div>
+                            <!-- Diatur default ke koordinat toko Anda: Ruko Elang Laut Boulevard, PIK, Jakarta Utara -->
+                            <input type="hidden" id="cust-lat" value="-6.115500">
+                            <input type="hidden" id="cust-lng" value="106.744100">
+                            <p id="map-status" class="text-[10px] text-slate-600 font-medium leading-tight">Geser pin merah ke titik lokasi yang pas.</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Ekspedisi</label>
+                                <select id="cust-courier" onchange="calculateOngkir()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                                    <option value="jne">JNE Express</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Layanan Paket</label>
+                                <select id="cust-service" onchange="updateGrandTotal()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                                    <option value="">-- Pilih Kota Dulu --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Metode Pembayaran</label>
+                            <select id="cust-payment" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                                <option value="Transfer Bank BCA">Transfer BCA</option>
+                                <option value="Transfer Bank Mandiri">Transfer Mandiri</option>
+                                <option value="QRIS / E-Wallet">QRIS / All E-Wallet</option>
+                                <option value="COD (Bayar di Tempat)">COD (Bayar Tempat)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Harga Rinci -->
+                <div class="border-t border-slate-200 p-6 bg-slate-50 space-y-2">
+                    <div class="flex justify-between items-center text-xs text-slate-500">
+                        <span>Subtotal Produk:</span>
+                        <span id="summary-subtotal" class="font-bold text-slate-800">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-slate-500">
+                        <span>Ongkos Kirim (<span id="summary-weight">0</span>g):</span>
+                        <span id="summary-ongkir" class="font-bold text-slate-800">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-200">
+                        <span class="text-sm font-extrabold text-slate-900">Total Tagihan:</span>
+                        <span id="cart-total" class="text-lg font-black text-indigo-600">Rp 0</span>
+                    </div>
+                    <button id="checkout-btn" onclick="checkout()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-md shadow-indigo-600/20 mt-3">
+                        Proses Checkout Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Instruksi Pembayaran (Rekening / QRIS) -->
+    <div id="payment-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"></div>
+
+            <div class="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-md w-full z-10 p-6 sm:p-8 space-y-5 text-center border border-slate-100">
+                <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-extrabold">
+                    💳
+                </div>
+
+                <div class="space-y-1">
+                    <h3 class="text-lg font-extrabold text-slate-900">Instruksi Pembayaran</h3>
+                    <p class="text-xs text-slate-500">ID Pesanan: <span id="pay-order-id" class="font-bold text-slate-800">#000000</span></p>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-left space-y-3 text-xs">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span class="text-slate-500 font-semibold">Total Tagihan:</span>
+                        <span id="pay-total-amount" class="text-base font-black text-indigo-600">Rp 0</span>
+                    </div>
+
+                    <div id="payment-details-content" class="space-y-2 pt-1"></div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-left text-[11px] text-amber-800 leading-relaxed">
+                    💡 <b>Langkah Selanjutnya:</b> Silakan lakukan pembayaran dan klik tombol di bawah untuk konfirmasi ke WA Admin.
+                </div>
+
+                <div class="space-y-2.5 pt-2">
+                    <a id="wa-confirm-btn" href="#" target="_blank" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2">
+                        <span>💬 Konfirmasi via WhatsApp</span>
+                    </a>
+                    <button onclick="closePaymentModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs transition">
+                        Tutup & Bayar Nanti
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white/80 backdrop-blur-md border-t border-slate-200/80 py-12 mt-auto text-center text-xs text-slate-500">
+        <p>&copy; 2026 TransGadget Toy Store. All rights reserved.</p>
+    </footer>
+
+    <!-- Script JavaScript -->
+    <script>
+        const API_URL = '/api/products';
+        let allProducts = [];
+        let currentCategory = 'Semua';
+        let activeProduct = null;
+        let activeImages = [];
+        let activeSlideIndex = 0;
+        let selectedQuantity = 1;
+        let cart = JSON.parse(localStorage.getItem('transgadget_toy_cart')) || [];
+        
+        let subtotalAmount = 0;
+        let selectedOngkirCost = 0;
+        let selectedServiceDescription = '';
+
+        // Variable Leaflet Map & Marker
+        let leafletMap = null;
+        let leafletMarker = null;
+
+        // Global State Kota/Kabupaten
+        let activeCitiesList = [];
+
+        // Daftar Kota & Kabupaten Seluruh Indonesia (Lengkap RajaOngkir IDs)
+        const DEFAULT_CITIES = [
+            { city_id: '1', city_name: 'Aceh Barat', type: 'Kabupaten' },
+            { city_id: '2', city_name: 'Aceh Barat Daya', type: 'Kabupaten' },
+            { city_id: '3', city_name: 'Aceh Besar', type: 'Kabupaten' },
+            { city_id: '4', city_name: 'Aceh Jaya', type: 'Kabupaten' },
+            { city_id: '5', city_name: 'Aceh Selatan', type: 'Kabupaten' },
+            { city_id: '6', city_name: 'Aceh Singkil', type: 'Kabupaten' },
+            { city_id: '7', city_name: 'Aceh Tamiang', type: 'Kabupaten' },
+            { city_id: '8', city_name: 'Aceh Tengah', type: 'Kabupaten' },
+            { city_id: '9', city_name: 'Aceh Tenggara', type: 'Kabupaten' },
+            { city_id: '10', city_name: 'Aceh Timur', type: 'Kabupaten' },
+            { city_id: '11', city_name: 'Aceh Utara', type: 'Kabupaten' },
+            { city_id: '21', city_name: 'Banda Aceh', type: 'Kota' },
+            { city_id: '268', city_name: 'Langsa', type: 'Kota' },
+            { city_id: '238', city_name: 'Lhokseumawe', type: 'Kota' },
+            { city_id: '391', city_name: 'Sabang', type: 'Kota' },
+            { city_id: '437', city_name: 'Subulussalam', type: 'Kota' },
+            { city_id: '12', city_name: 'Asahan', type: 'Kabupaten' },
+            { city_id: '53', city_name: 'Batubara', type: 'Kabupaten' },
+            { city_id: '110', city_name: 'Dairi', type: 'Kabupaten' },
+            { city_id: '112', city_name: 'Deli Serdang', type: 'Kabupaten' },
+            { city_id: '170', city_name: 'Humbang Hasundutan', type: 'Kabupaten' },
+            { city_id: '212', city_name: 'Karo', type: 'Kabupaten' },
+            { city_id: '224', city_name: 'Labuhanbatu', type: 'Kabupaten' },
+            { city_id: '225', city_name: 'Labuhanbatu Selatan', type: 'Kabupaten' },
+            { city_id: '226', city_name: 'Labuhanbatu Utara', type: 'Kabupaten' },
+            { city_id: '232', city_name: 'Langkat', type: 'Kabupaten' },
+            { city_id: '262', city_name: 'Mandailing Natal', type: 'Kabupaten' },
+            { city_id: '300', city_name: 'Nias', type: 'Kabupaten' },
+            { city_id: '301', city_name: 'Nias Barat', type: 'Kabupaten' },
+            { city_id: '302', city_name: 'Nias Selatan', type: 'Kabupaten' },
+            { city_id: '303', city_name: 'Nias Utara', type: 'Kabupaten' },
+            { city_id: '325', city_name: 'Padang Lawas', type: 'Kabupaten' },
+            { city_id: '326', city_name: 'Padang Lawas Utara', type: 'Kabupaten' },
+            { city_id: '332', city_name: 'Pakpak Bharat', type: 'Kabupaten' },
+            { city_id: '388', city_name: 'Samosir', type: 'Kabupaten' },
+            { city_id: '404', city_name: 'Serdang Bedagai', type: 'Kabupaten' },
+            { city_id: '416', city_name: 'Simalungun', type: 'Kabupaten' },
+            { city_id: '470', city_name: 'Tapanuli Selatan', type: 'Kabupaten' },
+            { city_id: '471', city_name: 'Tapanuli Tengah', type: 'Kabupaten' },
+            { city_id: '472', city_name: 'Tapanuli Utara', type: 'Kabupaten' },
+            { city_id: '477', city_name: 'Toba Samosir', type: 'Kabupaten' },
+            { city_id: '68', city_name: 'Binjai', type: 'Kota' },
+            { city_id: '137', city_name: 'Gunungsitoli', type: 'Kota' },
+            { city_id: '278', city_name: 'Medan', type: 'Kota' },
+            { city_id: '328', city_name: 'Padang Sidempuan', type: 'Kota' },
+            { city_id: '353', city_name: 'Pematang Siantar', type: 'Kota' },
+            { city_id: '407', city_name: 'Sibolga', type: 'Kota' },
+            { city_id: '462', city_name: 'Tanjung Balai', type: 'Kota' },
+            { city_id: '474', city_name: 'Tebing Tinggi', type: 'Kota' },
+            { city_id: '13', city_name: 'Agam', type: 'Kabupaten' },
+            { city_id: '116', city_name: 'Dharmasraya', type: 'Kabupaten' },
+            { city_id: '217', city_name: 'Kepulauan Mentawai', type: 'Kabupaten' },
+            { city_id: '239', city_name: 'Lima Puluh Kota', type: 'Kabupaten' },
+            { city_id: '329', city_name: 'Padang Pariaman', type: 'Kabupaten' },
+            { city_id: '341', city_name: 'Pasaman', type: 'Kabupaten' },
+            { city_id: '342', city_name: 'Pasaman Barat', type: 'Kabupaten' },
+            { city_id: '357', city_name: 'Pesisir Selatan', type: 'Kabupaten' },
+            { city_id: '414', city_name: 'Sijunjung', type: 'Kabupaten' },
+            { city_id: '420', city_name: 'Solok', type: 'Kabupaten' },
+            { city_id: '421', city_name: 'Solok Selatan', type: 'Kabupaten' },
+            { city_id: '467', city_name: 'Tanah Datar', type: 'Kabupaten' },
+            { city_id: '90', city_name: 'Bukittinggi', type: 'Kota' },
+            { city_id: '327', city_name: 'Padang', type: 'Kota' },
+            { city_id: '337', city_name: 'Padang Panjang', type: 'Kota' },
+            { city_id: '343', city_name: 'Pariaman', type: 'Kota' },
+            { city_id: '351', city_name: 'Payakumbuh', type: 'Kota' },
+            { city_id: '395', city_name: 'Sawahlunto', type: 'Kota' },
+            { city_id: '60', city_name: 'Bengkalis', type: 'Kabupaten' },
+            { city_id: '173', city_name: 'Indragiri Hilir', type: 'Kabupaten' },
+            { city_id: '174', city_name: 'Indragiri Hulu', type: 'Kabupaten' },
+            { city_id: '190', city_name: 'Kampar', type: 'Kabupaten' },
+            { city_id: '220', city_name: 'Kuantan Singingi', type: 'Kabupaten' },
+            { city_id: '350', city_name: 'Pelalawan', type: 'Kabupaten' },
+            { city_id: '382', city_name: 'Rokan Hilir', type: 'Kabupaten' },
+            { city_id: '383', city_name: 'Rokan Hulu', type: 'Kabupaten' },
+            { city_id: '411', city_name: 'Siak', type: 'Kabupaten' },
+            { city_id: '215', city_name: 'Kepulauan Meranti', type: 'Kabupaten' },
+            { city_id: '118', city_name: 'Dumai', type: 'Kota' },
+            { city_id: '334', city_name: 'Pekanbaru', type: 'Kota' },
+            { city_id: '50', city_name: 'Bintan', type: 'Kabupaten' },
+            { city_id: '201', city_name: 'Karimun', type: 'Kabupaten' },
+            { city_id: '237', city_name: 'Lingga', type: 'Kabupaten' },
+            { city_id: '297', city_name: 'Natuna', type: 'Kabupaten' },
+            { city_id: '218', city_name: 'Kepulauan Anambas', type: 'Kabupaten' },
+            { city_id: '48', city_name: 'Batam', type: 'Kota' },
+            { city_id: '465', city_name: 'Tanjung Pinang', type: 'Kota' },
+            { city_id: '56', city_name: 'Batang Hari', type: 'Kabupaten' },
+            { city_id: '91', city_name: 'Bungo', type: 'Kabupaten' },
+            { city_id: '214', city_name: 'Kerinci', type: 'Kabupaten' },
+            { city_id: '281', city_name: 'Merangin', type: 'Kabupaten' },
+            { city_id: '291', city_name: 'Muaro Jambi', type: 'Kabupaten' },
+            { city_id: '396', city_name: 'Sarolangun', type: 'Kabupaten' },
+            { city_id: '460', city_name: 'Tanjung Jabung Barat', type: 'Kabupaten' },
+            { city_id: '461', city_name: 'Tanjung Jabung Timur', type: 'Kabupaten' },
+            { city_id: '475', city_name: 'Tebo', type: 'Kabupaten' },
+            { city_id: '183', city_name: 'Jambi', type: 'Kota' },
+            { city_id: '438', city_name: 'Sungai Penuh', type: 'Kota' },
+            { city_id: '61', city_name: 'Bengkulu Selatan', type: 'Kabupaten' },
+            { city_id: '63', city_name: 'Bengkulu Tengah', type: 'Kabupaten' },
+            { city_id: '64', city_name: 'Bengkulu Utara', type: 'Kabupaten' },
+            { city_id: '204', city_name: 'Kaur', type: 'Kabupaten' },
+            { city_id: '207', city_name: 'Kepahiang', type: 'Kabupaten' },
+            { city_id: '233', city_name: 'Lebong', type: 'Kabupaten' },
+            { city_id: '292', city_name: 'Mukomuko', type: 'Kabupaten' },
+            { city_id: '380', city_name: 'Rejang Lebong', type: 'Kabupaten' },
+            { city_id: '401', city_name: 'Seluma', type: 'Kabupaten' },
+            { city_id: '62', city_name: 'Bengkulu', type: 'Kota' },
+            { city_id: '67', city_name: 'Banyuasin', type: 'Kabupaten' },
+            { city_id: '122', city_name: 'Empat Lawang', type: 'Kabupaten' },
+            { city_id: '228', city_name: 'Lahat', type: 'Kabupaten' },
+            { city_id: '290', city_name: 'Muara Enim', type: 'Kabupaten' },
+            { city_id: '293', city_name: 'Musi Banyuasin', type: 'Kabupaten' },
+            { city_id: '294', city_name: 'Musi Rawas', type: 'Kabupaten' },
+            { city_id: '295', city_name: 'Ogan Ilir', type: 'Kabupaten' },
+            { city_id: '308', city_name: 'Ogan Komering Ilir', type: 'Kabupaten' },
+            { city_id: '309', city_name: 'Ogan Komering Ulu', type: 'Kabupaten' },
+            { city_id: '310', city_name: 'Ogan Komering Ulu Selatan', type: 'Kabupaten' },
+            { city_id: '311', city_name: 'Ogan Komering Ulu Timur', type: 'Kabupaten' },
+            { city_id: '320', city_name: 'PALI (Penukal Abab Lematang Ilir)', type: 'Kabupaten' },
+            { city_id: '242', city_name: 'Lubuk Linggau', type: 'Kota' },
+            { city_id: '324', city_name: 'Pagar Alam', type: 'Kota' },
+            { city_id: '339', city_name: 'Palembang', type: 'Kota' },
+            { city_id: '367', city_name: 'Prabumulih', type: 'Kota' },
+            { city_id: '227', city_name: 'Lampung Barat', type: 'Kabupaten' },
+            { city_id: '229', city_name: 'Lampung Selatan', type: 'Kabupaten' },
+            { city_id: '230', city_name: 'Lampung Tengah', type: 'Kabupaten' },
+            { city_id: '231', city_name: 'Lampung Timur', type: 'Kabupaten' },
+            { city_id: '232', city_name: 'Lampung Utara', type: 'Kabupaten' },
+            { city_id: '282', city_name: 'Mesuji', type: 'Kabupaten' },
+            { city_id: '355', city_name: 'Pesawaran', type: 'Kabupaten' },
+            { city_id: '356', city_name: 'Pesisir Barat', type: 'Kabupaten' },
+            { city_id: '368', city_name: 'Pringsewu', type: 'Kabupaten' },
+            { city_id: '466', city_name: 'Tanggamus', type: 'Kabupaten' },
+            { city_id: '481', city_name: 'Tulang Bawang', type: 'Kabupaten' },
+            { city_id: '482', city_name: 'Tulang Bawang Barat', type: 'Kabupaten' },
+            { city_id: '492', city_name: 'Way Kanan', type: 'Kabupaten' },
+            { city_id: '28', city_name: 'Bandar Lampung', type: 'Kota' },
+            { city_id: '283', city_name: 'Metro', type: 'Kota' },
+            { city_id: '29', city_name: 'Bangka', type: 'Kabupaten' },
+            { city_id: '30', city_name: 'Bangka Barat', type: 'Kabupaten' },
+            { city_id: '31', city_name: 'Bangka Selatan', type: 'Kabupaten' },
+            { city_id: '32', city_name: 'Bangka Tengah', type: 'Kabupaten' },
+            { city_id: '57', city_name: 'Belitung', type: 'Kabupaten' },
+            { city_id: '58', city_name: 'Belitung Timur', type: 'Kabupaten' },
+            { city_id: '330', city_name: 'Pangkal Pinang', type: 'Kota' },
+            { city_id: '151', city_name: 'Jakarta Barat', type: 'Kota' },
+            { city_id: '152', city_name: 'Jakarta Pusat', type: 'Kota' },
+            { city_id: '153', city_name: 'Jakarta Selatan', type: 'Kota' },
+            { city_id: '154', city_name: 'Jakarta Timur', type: 'Kota' },
+            { city_id: '155', city_name: 'Jakarta Utara', type: 'Kota' },
+            { city_id: '150', city_name: 'Kepulauan Seribu', type: 'Kabupaten' },
+            { city_id: '106', city_name: 'Cilegon', type: 'Kota' },
+            { city_id: '223', city_name: 'Lebak', type: 'Kabupaten' },
+            { city_id: '335', city_name: 'Pandeglang', type: 'Kabupaten' },
+            { city_id: '402', city_name: 'Serang', type: 'Kabupaten' },
+            { city_id: '403', city_name: 'Serang', type: 'Kota' },
+            { city_id: '455', city_name: 'Tangerang', type: 'Kabupaten' },
+            { city_id: '456', city_name: 'Tangerang', type: 'Kota' },
+            { city_id: '457', city_name: 'Tangerang Selatan', type: 'Kota' },
+            { city_id: '22', city_name: 'Bandung', type: 'Kabupaten' },
+            { city_id: '23', city_name: 'Bandung', type: 'Kota' },
+            { city_id: '24', city_name: 'Bandung Barat', type: 'Kabupaten' },
+            { city_id: '54', city_name: 'Bekasi', type: 'Kabupaten' },
+            { city_id: '55', city_name: 'Bekasi', type: 'Kota' },
+            { city_id: '78', city_name: 'Bogor', type: 'Kabupaten' },
+            { city_id: '79', city_name: 'Bogor', type: 'Kota' },
+            { city_id: '92', city_name: 'Ciamis', type: 'Kabupaten' },
+            { city_id: '93', city_name: 'Cianjur', type: 'Kabupaten' },
+            { city_id: '108', city_name: 'Cirebon', type: 'Kabupaten' },
+            { city_id: '109', city_name: 'Cirebon', type: 'Kota' },
+            { city_id: '115', city_name: 'Depok', type: 'Kota' },
+            { city_id: '127', city_name: 'Garut', type: 'Kabupaten' },
+            { city_id: '172', city_name: 'Indramayu', type: 'Kabupaten' },
+            { city_id: '211', city_name: 'Karawang', type: 'Kabupaten' },
+            { city_id: '252', city_name: 'Kuningan', type: 'Kabupaten' },
+            { city_id: '280', city_name: 'Majalengka', type: 'Kabupaten' },
+            { city_id: '331', city_name: 'Pangandaran', type: 'Kabupaten' },
+            { city_id: '376', city_name: 'Purwakarta', type: 'Kabupaten' },
+            { city_id: '427', city_name: 'Subang', type: 'Kabupaten' },
+            { city_id: '428', city_name: 'Sukabumi', type: 'Kabupaten' },
+            { city_id: '429', city_name: 'Sukabumi', type: 'Kota' },
+            { city_id: '440', city_name: 'Sumedang', type: 'Kabupaten' },
+            { city_id: '468', city_name: 'Tasikmalaya', type: 'Kabupaten' },
+            { city_id: '469', city_name: 'Tasikmalaya', type: 'Kota' },
+            { city_id: '476', city_name: 'Cimahi', type: 'Kota' },
+            { city_id: '483', city_name: 'Banjar', type: 'Kota' },
+            { city_id: '38', city_name: 'Banjarnegara', type: 'Kabupaten' },
+            { city_id: '41', city_name: 'Banyumas', type: 'Kabupaten' },
+            { city_id: '49', city_name: 'Batang', type: 'Kabupaten' },
+            { city_id: '75', city_name: 'Blora', type: 'Kabupaten' },
+            { city_id: '87', city_name: 'Boyolali', type: 'Kabupaten' },
+            { city_id: '88', city_name: 'Brebes', type: 'Kabupaten' },
+            { city_id: '103', city_name: 'Cilacap', type: 'Kabupaten' },
+            { city_id: '113', city_name: 'Demak', type: 'Kabupaten' },
+            { city_id: '135', city_name: 'Grobogan', type: 'Kabupaten' },
+            { city_id: '184', city_name: 'Jepara', type: 'Kabupaten' },
+            { city_id: '202', city_name: 'Karanganyar', type: 'Kabupaten' },
+            { city_id: '209', city_name: 'Kebumen', type: 'Kabupaten' },
+            { city_id: '210', city_name: 'Kendal', type: 'Kabupaten' },
+            { city_id: '216', city_name: 'Klaten', type: 'Kabupaten' },
+            { city_id: '221', city_name: 'Kudus', type: 'Kabupaten' },
+            { city_id: '249', city_name: 'Magelang', type: 'Kabupaten' },
+            { city_id: '250', city_name: 'Magelang', type: 'Kota' },
+            { city_id: '344', city_name: 'Pati', type: 'Kabupaten' },
+            { city_id: '348', city_name: 'Pekalongan', type: 'Kabupaten' },
+            { city_id: '349', city_name: 'Pekalongan', type: 'Kota' },
+            { city_id: '352', city_name: 'Pemalang', type: 'Kabupaten' },
+            { city_id: '370', city_name: 'Purbalingga', type: 'Kabupaten' },
+            { city_id: '371', city_name: 'Purworejo', type: 'Kabupaten' },
+            { city_id: '386', city_name: 'Rembang', type: 'Kabupaten' },
+            { city_id: '392', city_name: 'Salatiga', type: 'Kota' },
+            { city_id: '398', city_name: 'Semarang', type: 'Kabupaten' },
+            { city_id: '399', city_name: 'Semarang', type: 'Kota' },
+            { city_id: '422', city_name: 'Sragen', type: 'Kabupaten' },
+            { city_id: '433', city_name: 'Sukoharjo', type: 'Kabupaten' },
+            { city_id: '445', city_name: 'Surakarta (Solo)', type: 'Kota' },
+            { city_id: '472', city_name: 'Tegal', type: 'Kabupaten' },
+            { city_id: '473', city_name: 'Tegal', type: 'Kota' },
+            { city_id: '475', city_name: 'Temanggung', type: 'Kabupaten' },
+            { city_id: '497', city_name: 'Wonogiri', type: 'Kabupaten' },
+            { city_id: '498', city_name: 'Wonosobo', type: 'Kabupaten' },
+            { city_id: '39', city_name: 'Bantul', type: 'Kabupaten' },
+            { city_id: '136', city_name: 'Gunung Kidul', type: 'Kabupaten' },
+            { city_id: '220', city_name: 'Kulon Progo', type: 'Kabupaten' },
+            { city_id: '419', city_name: 'Sleman', type: 'Kabupaten' },
+            { city_id: '501', city_name: 'Yogyakarta', type: 'Kota' },
+            { city_id: '36', city_name: 'Bangkalan', type: 'Kabupaten' },
+            { city_id: '42', city_name: 'Banyuwangi', type: 'Kabupaten' },
+            { city_id: '74', city_name: 'Blitar', type: 'Kabupaten' },
+            { city_id: '76', city_name: 'Blitar', type: 'Kota' },
+            { city_id: '80', city_name: 'Bojonegoro', type: 'Kabupaten' },
+            { city_id: '86', city_name: 'Bondowoso', type: 'Kabupaten' },
+            { city_id: '133', city_name: 'Gresik', type: 'Kabupaten' },
+            { city_id: '178', city_name: 'Jember', type: 'Kabupaten' },
+            { city_id: '179', city_name: 'Jombang', type: 'Kabupaten' },
+            { city_id: '208', city_name: 'Kediri', type: 'Kabupaten' },
+            { city_id: '209', city_name: 'Kediri', type: 'Kota' },
+            { city_id: '222', city_name: 'Lamongan', type: 'Kabupaten' },
+            { city_id: '243', city_name: 'Lumajang', type: 'Kabupaten' },
+            { city_id: '247', city_name: 'Madiun', type: 'Kabupaten' },
+            { city_id: '248', city_name: 'Madiun', type: 'Kota' },
+            { city_id: '251', city_name: 'Magetan', type: 'Kabupaten' },
+            { city_id: '255', city_name: 'Malang', type: 'Kabupaten' },
+            { city_id: '256', city_name: 'Malang', type: 'Kota' },
+            { city_id: '288', city_name: 'Mojokerto', type: 'Kabupaten' },
+            { city_id: '289', city_name: 'Mojokerto', type: 'Kota' },
+            { city_id: '298', city_name: 'Nganjuk', type: 'Kabupaten' },
+            { city_id: '299', city_name: 'Ngawi', type: 'Kabupaten' },
+            { city_id: '333', city_name: 'Pacitan', type: 'Kabupaten' },
+            { city_id: '338', city_name: 'Pamekasan', type: 'Kabupaten' },
+            { city_id: '342', city_name: 'Pasuruan', type: 'Kabupaten' },
+            { city_id: '343', city_name: 'Pasuruan', type: 'Kota' },
+            { city_id: '363', city_name: 'Ponorogo', type: 'Kabupaten' },
+            { city_id: '369', city_name: 'Probolinggo', type: 'Kabupaten' },
+            { city_id: '370', city_name: 'Probolinggo', type: 'Kota' },
+            { city_id: '394', city_name: 'Sampang', type: 'Kabupaten' },
+            { city_id: '409', city_name: 'Sidoarjo', type: 'Kabupaten' },
+            { city_id: '418', city_name: 'Situbondo', type: 'Kabupaten' },
+            { city_id: '441', city_name: 'Sumenep', type: 'Kabupaten' },
+            { city_id: '444', city_name: 'Surabaya', type: 'Kota' },
+            { city_id: '480', city_name: 'Trenggalek', type: 'Kabupaten' },
+            { city_id: '482', city_name: 'Tuban', type: 'Kabupaten' },
+            { city_id: '484', city_name: 'Tulungagung', type: 'Kabupaten' },
+            { city_id: '487', city_name: 'Batu', type: 'Kota' },
+            { city_id: '17', city_name: 'Badung', type: 'Kabupaten' },
+            { city_id: '32', city_name: 'Bangli', type: 'Kabupaten' },
+            { city_id: '94', city_name: 'Buleleng', type: 'Kabupaten' },
+            { city_id: '114', city_name: 'Denpasar', type: 'Kota' },
+            { city_id: '128', city_name: 'Gianyar', type: 'Kabupaten' },
+            { city_id: '180', city_name: 'Jembrana', type: 'Kabupaten' },
+            { city_id: '206', city_name: 'Karangasem', type: 'Kabupaten' },
+            { city_id: '213', city_name: 'Klungkung', type: 'Kabupaten' },
+            { city_id: '447', city_name: 'Tabanan', type: 'Kabupaten' },
+            { city_id: '71', city_name: 'Bima', type: 'Kabupaten' },
+            { city_id: '72', city_name: 'Bima', type: 'Kota' },
+            { city_id: '117', city_name: 'Dompu', type: 'Kabupaten' },
+            { city_id: '234', city_name: 'Lombok Barat', type: 'Kabupaten' },
+            { city_id: '235', city_name: 'Lombok Tengah', type: 'Kabupaten' },
+            { city_id: '236', city_name: 'Lombok Timur', type: 'Kabupaten' },
+            { city_id: '237', city_name: 'Lombok Utara', type: 'Kabupaten' },
+            { city_id: '269', city_name: 'Mataram', type: 'Kota' },
+            { city_id: '434', city_name: 'Sumbawa', type: 'Kabupaten' },
+            { city_id: '435', city_name: 'Sumbawa Barat', type: 'Kabupaten' },
+            { city_id: '18', city_name: 'Alor', type: 'Kabupaten' },
+            { city_id: '52', city_name: 'Belu', type: 'Kabupaten' },
+            { city_id: '121', city_name: 'Ende', type: 'Kabupaten' },
+            { city_id: '125', city_name: 'Flores Timur', type: 'Kabupaten' },
+            { city_id: '218', city_name: 'Kupang', type: 'Kota' },
+            { city_id: '219', city_name: 'Kupang', type: 'Kabupaten' },
+            { city_id: '233', city_name: 'Lembata', type: 'Kabupaten' },
+            { city_id: '263', city_name: 'Manggarai', type: 'Kabupaten' },
+            { city_id: '264', city_name: 'Manggarai Barat', type: 'Kabupaten' },
+            { city_id: '265', city_name: 'Manggarai Timur', type: 'Kabupaten' },
+            { city_id: '296', city_name: 'Nagekeo', type: 'Kabupaten' },
+            { city_id: '304', city_name: 'Ngada', type: 'Kabupaten' },
+            { city_id: '385', city_name: 'Rote Ndao', type: 'Kabupaten' },
+            { city_id: '412', city_name: 'Sikka', type: 'Kabupaten' },
+            { city_id: '431', city_name: 'Sumba Barat', type: 'Kabupaten' },
+            { city_id: '432', city_name: 'Sumba Barat Daya', type: 'Kabupaten' },
+            { city_id: '433', city_name: 'Sumba Tengah', type: 'Kabupaten' },
+            { city_id: '434', city_name: 'Sumba Timur', type: 'Kabupaten' },
+            { city_id: '478', city_name: 'Timor Tengah Selatan', type: 'Kabupaten' },
+            { city_id: '479', city_name: 'Timor Tengah Utara', type: 'Kabupaten' },
+            { city_id: '69', city_name: 'Bengkayang', type: 'Kabupaten' },
+            { city_id: '195', city_name: 'Kapuas Hulu', type: 'Kabupaten' },
+            { city_id: '200', city_name: 'Kayong Utara', type: 'Kabupaten' },
+            { city_id: '213', city_name: 'Ketapang', type: 'Kabupaten' },
+            { city_id: '222', city_name: 'Kubu Raya', type: 'Kabupaten' },
+            { city_id: '231', city_name: 'Landak', type: 'Kabupaten' },
+            { city_id: '286', city_name: 'Melawi', type: 'Kabupaten' },
+            { city_id: '287', city_name: 'Mempawah', type: 'Kabupaten' },
+            { city_id: '365', city_name: 'Pontianak', type: 'Kota' },
+            { city_id: '390', city_name: 'Sambas', type: 'Kabupaten' },
+            { city_id: '397', city_name: 'Sanggau', type: 'Kabupaten' },
+            { city_id: '408', city_name: 'Sekadau', type: 'Kabupaten' },
+            { city_id: '415', city_name: 'Singkawang', type: 'Kota' },
+            { city_id: '417', city_name: 'Sintang', type: 'Kabupaten' },
+            { city_id: '47', city_name: 'Barito Selatan', type: 'Kabupaten' },
+            { city_id: '48', city_name: 'Barito Timur', type: 'Kabupaten' },
+            { city_id: '49', city_name: 'Barito Utara', type: 'Kabupaten' },
+            { city_id: '138', city_name: 'Gunung Mas', type: 'Kabupaten' },
+            { city_id: '196', city_name: 'Kapuas', type: 'Kabupaten' },
+            { city_id: '205', city_name: 'Katingan', type: 'Kabupaten' },
+            { city_id: '217', city_name: 'Kotawaringin Barat', type: 'Kabupaten' },
+            { city_id: '218', city_name: 'Kotawaringin Timur', type: 'Kabupaten' },
+            { city_id: '227', city_name: 'Lamandau', type: 'Kabupaten' },
+            { city_id: '294', city_name: 'Murung Raya', type: 'Kabupaten' },
+            { city_id: '336', city_name: 'Palangkaraya', type: 'Kota' },
+            { city_id: '372', city_name: 'Pulang Pisau', type: 'Kabupaten' },
+            { city_id: '432', city_name: 'Sukamara', type: 'Kabupaten' },
+            { city_id: '40', city_name: 'Banjar', type: 'Kabupaten' },
+            { city_id: '43', city_name: 'Barito Kuala', type: 'Kabupaten' },
+            { city_id: '171', city_name: 'Hulu Sungai Selatan', type: 'Kabupaten' },
+            { city_id: '172', city_name: 'Hulu Sungai Tengah', type: 'Kabupaten' },
+            { city_id: '173', city_name: 'Hulu Sungai Utara', type: 'Kabupaten' },
+            { city_id: '219', city_name: 'Kotabaru', type: 'Kabupaten' },
+            { city_id: '448', city_name: 'Tabalong', type: 'Kabupaten' },
+            { city_id: '452', city_name: 'Tanah Bumbu', type: 'Kabupaten' },
+            { city_id: '453', city_name: 'Tanah Laut', type: 'Kabupaten' },
+            { city_id: '458', city_name: 'Tapin', type: 'Kabupaten' },
+            { city_id: '33', city_name: 'Banjarmasin', type: 'Kota' },
+            { city_id: '34', city_name: 'Banjarbaru', type: 'Kota' },
+            { city_id: '65', city_name: 'Berau', type: 'Kabupaten' },
+            { city_id: '221', city_name: 'Kutai Barat', type: 'Kabupaten' },
+            { city_id: '222', city_name: 'Kutai Kartanegara', type: 'Kabupaten' },
+            { city_id: '223', city_name: 'Kutai Timur', type: 'Kabupaten' },
+            { city_id: '266', city_name: 'Mahakam Ulu', type: 'Kabupaten' },
+            { city_id: '346', city_name: 'Paser', type: 'Kabupaten' },
+            { city_id: '354', city_name: 'Penajam Paser Utara', type: 'Kabupaten' },
+            { city_id: '20', city_name: 'Balikpapan', type: 'Kota' },
+            { city_id: '85', city_name: 'Bontang', type: 'Kota' },
+            { city_id: '393', city_name: 'Samarinda', type: 'Kota' },
+            { city_id: '96', city_name: 'Bulungan', type: 'Kabupaten' },
+            { city_id: '259', city_name: 'Malinau', type: 'Kabupaten' },
+            { city_id: '307', city_name: 'Nunukan', type: 'Kabupaten' },
+            { city_id: '463', city_name: 'Tarakan', type: 'Kota' },
+            { city_id: '15', city_name: 'Bantaeng', type: 'Kabupaten' },
+            { city_id: '44', city_name: 'Barru', type: 'Kabupaten' },
+            { city_id: '81', city_name: 'Bone', type: 'Kabupaten' },
+            { city_id: '88', city_name: 'Bulukumba', type: 'Kabupaten' },
+            { city_id: '120', city_name: 'Enrekang', type: 'Kabupaten' },
+            { city_id: '130', city_name: 'Gowa', type: 'Kabupaten' },
+            { city_id: '185', city_name: 'Jeneponto', type: 'Kabupaten' },
+            { city_id: '186', city_name: 'Kepulauan Selayar', type: 'Kabupaten' },
+            { city_id: '244', city_name: 'Luwu', type: 'Kabupaten' },
+            { city_id: '245', city_name: 'Luwu Timur', type: 'Kabupaten' },
+            { city_id: '246', city_name: 'Luwu Utara', type: 'Kabupaten' },
+            { city_id: '267', city_name: 'Maros', type: 'Kabupaten' },
+            { city_id: '337', city_name: 'Pangkajene Dan Kepulauan', type: 'Kabupaten' },
+            { city_id: '360', city_name: 'Pinrang', type: 'Kabupaten' },
+            { city_id: '413', city_name: 'Sidenreng Rappang', type: 'Kabupaten' },
+            { city_id: '416', city_name: 'Sinjai', type: 'Kabupaten' },
+            { city_id: '423', city_name: 'Soppeng', type: 'Kabupaten' },
+            { city_id: '450', city_name: 'Takalar', type: 'Kabupaten' },
+            { city_id: '464', city_name: 'Tana Toraja', type: 'Kabupaten' },
+            { city_id: '488', city_name: 'Toraja Utara', type: 'Kabupaten' },
+            { city_id: '493', city_name: 'Wajo', type: 'Kabupaten' },
+            { city_id: '254', city_name: 'Makassar', type: 'Kota' },
+            { city_id: '338', city_name: 'Palopo', type: 'Kota' },
+            { city_id: '345', city_name: 'Parepare', type: 'Kota' },
+            { city_id: '73', city_name: 'Banggai', type: 'Kabupaten' },
+            { city_id: '74', city_name: 'Banggai Kepulauan', type: 'Kabupaten' },
+            { city_id: '75', city_name: 'Banggai Laut', type: 'Kabupaten' },
+            { city_id: '90', city_name: 'Buol', type: 'Kabupaten' },
+            { city_id: '119', city_name: 'Donggala', type: 'Kabupaten' },
+            { city_id: '288', city_name: 'Morowali', type: 'Kabupaten' },
+            { city_id: '289', city_name: 'Morowali Utara', type: 'Kabupaten' },
+            { city_id: '341', city_name: 'Parigi Moutong', type: 'Kabupaten' },
+            { city_id: '364', city_name: 'Poso', type: 'Kabupaten' },
+            { city_id: '412', city_name: 'Sigi', type: 'Kabupaten' },
+            { city_id: '483', city_name: 'Tojo Una-Una', type: 'Kabupaten' },
+            { city_id: '485', city_name: 'Toli-Toli', type: 'Kabupaten' },
+            { city_id: '340', city_name: 'Palu', type: 'Kota' },
+            { city_id: '82', city_name: 'Bolaang Mongondow', type: 'Kabupaten' },
+            { city_id: '83', city_name: 'Bolaang Mongondow Selatan', type: 'Kabupaten' },
+            { city_id: '84', city_name: 'Bolaang Mongondow Timur', type: 'Kabupaten' },
+            { city_id: '85', city_name: 'Bolaang Mongondow Utara', type: 'Kabupaten' },
+            { city_id: '188', city_name: 'Kepulauan Sangihe', type: 'Kabupaten' },
+            { city_id: '189', city_name: 'Kepulauan Siau Tagulandang Biaro (Sitaro)', type: 'Kabupaten' },
+            { city_id: '190', city_name: 'Kepulauan Talaud', type: 'Kabupaten' },
+            { city_id: '284', city_name: 'Minahasa', type: 'Kabupaten' },
+            { city_id: '285', city_name: 'Minahasa Selatan', type: 'Kabupaten' },
+            { city_id: '286', city_name: 'Minahasa Tenggara', type: 'Kabupaten' },
+            { city_id: '287', city_name: 'Minahasa Utara', type: 'Kabupaten' },
+            { city_id: '210', city_name: 'Kotamobagu', type: 'Kota' },
+            { city_id: '258', city_name: 'Manado', type: 'Kota' },
+            { city_id: '479', city_name: 'Tomohon', type: 'Kota' },
+            { city_id: '70', city_name: 'Bitung', type: 'Kota' },
+            { city_id: '80', city_name: 'Bombana', type: 'Kabupaten' },
+            { city_id: '97', city_name: 'Buton', type: 'Kabupaten' },
+            { city_id: '98', city_name: 'Buton Selatan', type: 'Kabupaten' },
+            { city_id: '99', city_name: 'Buton Tengah', type: 'Kabupaten' },
+            { city_id: '100', city_name: 'Buton Utara', type: 'Kabupaten' },
+            { city_id: '215', city_name: 'Kolaka', type: 'Kabupaten' },
+            { city_id: '216', city_name: 'Kolaka Timur', type: 'Kabupaten' },
+            { city_id: '217', city_name: 'Kolaka Utara', type: 'Kabupaten' },
+            { city_id: '220', city_name: 'Konawe', type: 'Kabupaten' },
+            { city_id: '221', city_name: 'Konawe Kepulauan', type: 'Kabupaten' },
+            { city_id: '222', city_name: 'Konawe Selatan', type: 'Kabupaten' },
+            { city_id: '223', city_name: 'Konawe Utara', type: 'Kabupaten' },
+            { city_id: '293', city_name: 'Muna', type: 'Kabupaten' },
+            { city_id: '294', city_name: 'Muna Barat', type: 'Kabupaten' },
+            { city_id: '490', city_name: 'Wakatobi', type: 'Kabupaten' },
+            { city_id: '51', city_name: 'Baubau', type: 'Kota' },
+            { city_id: '212', city_name: 'Kendari', type: 'Kota' },
+            { city_id: '77', city_name: 'Boalemo', type: 'Kabupaten' },
+            { city_id: '81', city_name: 'Bone Bolango', type: 'Kabupaten' },
+            { city_id: '132', city_name: 'Gorontalo Utara', type: 'Kabupaten' },
+            { city_id: '362', city_name: 'Pohuwato', type: 'Kabupaten' },
+            { city_id: '131', city_name: 'Gorontalo', type: 'Kota' },
+            { city_id: '257', city_name: 'Majene', type: 'Kabupaten' },
+            { city_id: '260', city_name: 'Mamuju', type: 'Kabupaten' },
+            { city_id: '261', city_name: 'Mamuju Tengah', type: 'Kabupaten' },
+            { city_id: '262', city_name: 'Mamuju Utara', type: 'Kabupaten' },
+            { city_id: '361', city_name: 'Polewali Mandar', type: 'Kabupaten' },
+            { city_id: '92', city_name: 'Buru', type: 'Kabupaten' },
+            { city_id: '93', city_name: 'Buru Selatan', type: 'Kabupaten' },
+            { city_id: '191', city_name: 'Kepulauan Aru', type: 'Kabupaten' },
+            { city_id: '258', city_name: 'Maluku Barat Daya', type: 'Kabupaten' },
+            { city_id: '259', city_name: 'Maluku Tengah', type: 'Kabupaten' },
+            { city_id: '260', city_name: 'Maluku Tenggara', type: 'Kabupaten' },
+            { city_id: '261', city_name: 'Maluku Tenggara Barat', type: 'Kabupaten' },
+            { city_id: '406', city_name: 'Seram Bagian Barat', type: 'Kabupaten' },
+            { city_id: '407', city_name: 'Seram Bagian Timur', type: 'Kabupaten' },
+            { city_id: '124', city_name: 'Ambon', type: 'Kota' },
+            { city_id: '484', city_name: 'Tual', type: 'Kota' },
+            { city_id: '141', city_name: 'Halmahera Barat', type: 'Kabupaten' },
+            { city_id: '142', city_name: 'Halmahera Selatan', type: 'Kabupaten' },
+            { city_id: '143', city_name: 'Halmahera Tengah', type: 'Kabupaten' },
+            { city_id: '144', city_name: 'Halmahera Timur', type: 'Kabupaten' },
+            { city_id: '145', city_name: 'Halmahera Utara', type: 'Kabupaten' },
+            { city_id: '187', city_name: 'Kepulauan Sula', type: 'Kabupaten' },
+            { city_id: '371', city_name: 'Pulau Morotai', type: 'Kabupaten' },
+            { city_id: '477', city_name: 'Ternate', type: 'Kota' },
+            { city_id: '478', city_name: 'Tidore Kepulauan', type: 'Kota' },
+            { city_id: '19', city_name: 'Asmat', type: 'Kabupaten' },
+            { city_id: '66', city_name: 'Biak Numfor', type: 'Kabupaten' },
+            { city_id: '86', city_name: 'Boven Digoel', type: 'Kabupaten' },
+            { city_id: '111', city_name: 'Deiyai', type: 'Kabupaten' },
+            { city_id: '117', city_name: 'Dogiyai', type: 'Kabupaten' },
+            { city_id: '175', city_name: 'Intan Jaya', type: 'Kabupaten' },
+            { city_id: '181', city_name: 'Jayapura', type: 'Kabupaten' },
+            { city_id: '183', city_name: 'Jayawijaya', type: 'Kabupaten' },
+            { city_id: '203', city_name: 'Keerom', type: 'Kabupaten' },
+            { city_id: '216', city_name: 'Kepulauan Yapen', type: 'Kabupaten' },
+            { city_id: '229', city_name: 'Lanny Jaya', type: 'Kabupaten' },
+            { city_id: '253', city_name: 'Mamberamo Raya', type: 'Kabupaten' },
+            { city_id: '254', city_name: 'Mamberamo Tengah', type: 'Kabupaten' },
+            { city_id: '268', city_name: 'Mappi', type: 'Kabupaten' },
+            { city_id: '279', city_name: 'Merauke', type: 'Kabupaten' },
+            { city_id: '285', city_name: 'Mimika', type: 'Kabupaten' },
+            { city_id: '295', city_name: 'Nabire', type: 'Kabupaten' },
+            { city_id: '297', city_name: 'Nduga', type: 'Kabupaten' },
+            { city_id: '322', city_name: 'Paniai', type: 'Kabupaten' },
+            { city_id: '323', city_name: 'Pegunungan Bintang', type: 'Kabupaten' },
+            { city_id: '366', city_name: 'Puncak', type: 'Kabupaten' },
+            { city_id: '367', city_name: 'Puncak Jaya', type: 'Kabupaten' },
+            { city_id: '398', city_name: 'Sarmi', type: 'Kabupaten' },
+            { city_id: '439', city_name: 'Supiori', type: 'Kabupaten' },
+            { city_id: '476', city_name: 'Tolikara', type: 'Kabupaten' },
+            { city_id: '491', city_name: 'Waropen', type: 'Kabupaten' },
+            { city_id: '494', city_name: 'Yahukimo', type: 'Kabupaten' },
+            { city_id: '495', city_name: 'Yalimo', type: 'Kabupaten' },
+            { city_id: '182', city_name: 'Jayapura', type: 'Kota' },
+            { city_id: '123', city_name: 'Fakfak', type: 'Kabupaten' },
+            { city_id: '192', city_name: 'Kaimana', type: 'Kabupaten' },
+            { city_id: '271', city_name: 'Manokwari', type: 'Kabupaten' },
+            { city_id: '272', city_name: 'Manokwari Selatan', type: 'Kabupaten' },
+            { city_id: '277', city_name: 'Maybrat', type: 'Kabupaten' },
+            { city_id: '321', city_name: 'Pegunungan Arfak', type: 'Kabupaten' },
+            { city_id: '374', city_name: 'Raja Ampat', type: 'Kabupaten' },
+            { city_id: '425', city_name: 'Sorong', type: 'Kabupaten' },
+            { city_id: '426', city_name: 'Sorong Selatan', type: 'Kabupaten' },
+            { city_id: '446', city_name: 'Tambrauw', type: 'Kabupaten' },
+            { city_id: '471', city_name: 'Teluk Bintuni', type: 'Kabupaten' },
+            { city_id: '472', city_name: 'Teluk Wondama', type: 'Kabupaten' },
+            { city_id: '417', city_name: 'Sorong', type: 'Kota' }
+        ];
+
+        async function initStore() {
+            activeCitiesList = [...DEFAULT_CITIES];
+            activeCitiesList.sort((a, b) => a.city_name.localeCompare(b.city_name));
+            
+            await fetchCustomerProducts();
+            await loadCitiesFromServer();
+        }
+
+        function showCityDropdown() {
+            filterCityDropdown();
+        }
+
+        function filterCityDropdown() {
+            const inputVal = document.getElementById('cust-city-input').value.toLowerCase().trim();
+            const dropdown = document.getElementById('city-dropdown');
+            
+            dropdown.innerHTML = '';
+
+            const filtered = activeCitiesList.filter(city => {
+                const fullName = `${city.type} ${city.city_name}`.toLowerCase();
+                return fullName.includes(inputVal);
+            });
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = `<div class="px-3 py-2 text-slate-400 text-xs">Kota tidak ditemukan</div>`;
+            } else {
+                filtered.forEach(city => {
+                    const fullName = `${city.type} ${city.city_name}`;
+                    const item = document.createElement('div');
+                    item.className = 'px-3 py-2 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer border-b border-slate-100 text-xs font-medium transition';
+                    item.innerText = fullName;
+                    item.onclick = function() {
+                        selectCityItem(city.city_id, fullName);
+                    };
+                    dropdown.appendChild(item);
+                });
+            }
+
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectCityItem(cityId, cityName) {
+            document.getElementById('cust-city-input').value = cityName;
+            document.getElementById('cust-city').value = cityId;
+            document.getElementById('city-dropdown').classList.add('hidden');
+
+            calculateOngkir();
+            autoSyncAddressToMap();
+        }
+
+        async function autoSyncAddressToMap() {
+            const address = document.getElementById('cust-address').value.trim();
+            const subdistrict = document.getElementById('cust-subdistrict').value.trim();
+            const district = document.getElementById('cust-district').value.trim();
+            const city = document.getElementById('cust-city-input').value.trim();
+
+            const queryParts = [address, subdistrict, district, city].filter(Boolean);
+            if (queryParts.length === 0) return;
+
+            const searchQuery = queryParts.join(', ');
+            document.getElementById('map-status').innerText = 'Menyesuaikan titik peta berdasarkan alamat Anda...';
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=id&limit=1`);
+                const results = await res.json();
+
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+
+                    if (leafletMap && leafletMarker) {
+                        leafletMap.setView([lat, lon], 16);
+                        leafletMarker.setLatLng([lat, lon]);
+                        
+                        document.getElementById('cust-lat').value = lat.toFixed(6);
+                        document.getElementById('cust-lng').value = lon.toFixed(6);
+                        document.getElementById('map-status').innerText = `📍 Posisi Peta Diperbarui: ${results[0].display_name.substring(0, 75)}...`;
+                    }
+                } else {
+                    document.getElementById('map-status').innerText = 'Geser pin merah ke titik lokasi yang pas.';
+                }
+            } catch (err) {
+                console.warn('Gagal melakukan geocoding otomatis:', err);
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const container = document.getElementById('cust-city-input');
+            const dropdown = document.getElementById('city-dropdown');
+            if (container && dropdown && !container.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        async function loadCitiesFromServer() {
+            try {
+                const res = await fetch('/api/cities');
+                const result = await res.json();
+                if (result.success && result.data && result.data.length > 50) {
+                    activeCitiesList = result.data;
+                    activeCitiesList.sort((a, b) => a.city_name.localeCompare(b.city_name));
+                }
+            } catch (err) {
+                console.warn('Menggunakan daftar kota lokal:', err);
+            }
+        }
+
+        async function fetchCustomerProducts() {
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+                allProducts = result.data || [];
+                applyFilters();
+                updateCartUI();
+            } catch (error) {
+                console.error('Gagal memuat katalog:', error);
+                document.getElementById('product-grid').innerHTML = `<p class="text-rose-500 col-span-full text-center py-12 text-sm font-semibold">Gagal terhubung ke database server.</p>`;
+            }
+        }
+
+        function displayProducts(products) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            document.getElementById('product-count').innerText = `${products.length} Mainan Tersedia`;
+
+            if (products.length === 0) {
+                grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-12 text-sm font-medium">Tidak ada mainan yang ditemukan.</p>`;
+                return;
+            }
+
+            products.forEach((product, index) => {
+                const isAvailable = product.stock > 0;
+                const mainImage = (product.images && product.images.length > 0) 
+                    ? product.images[0] 
+                    : (product.image || 'https://via.placeholder.com/300?text=No+Image');
+
+                grid.innerHTML += `
+                    <div onclick='openDetailModal(${index})' class="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+                        <div>
+                            <div class="relative w-full aspect-square bg-slate-900 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
+                                <img src="${mainImage}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                <span class="absolute top-2 left-2 bg-indigo-600/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                    ${product.category || 'Action Figure'}
+                                </span>
+                                <span class="absolute top-2 right-2 ${isAvailable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                                    ${isAvailable ? 'Ready' : 'Habis'}
+                                </span>
+                            </div>
+                            <h3 class="font-bold text-slate-900 text-xs sm:text-sm tracking-tight group-hover:text-indigo-600 transition mb-1 line-clamp-2">${product.name}</h3>
+                            <p class="text-slate-500 text-[11px] mb-3 line-clamp-1 leading-relaxed">${product.description || 'Tidak ada deskripsi mainan.'}</p>
+                        </div>
+                        <div>
+                            <div class="text-sm sm:text-base font-black text-slate-900 mb-3 tracking-tight">Rp ${Number(product.price).toLocaleString('id-ID')}</div>
+                            <div class="w-full bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-bold py-2 rounded-lg text-[11px] transition-all uppercase tracking-wider text-center">
+                                Lihat Detail
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterByCategory(category, element) {
+            currentCategory = category;
+            const buttons = document.querySelectorAll('#category-filters button');
+            buttons.forEach(btn => {
+                btn.className = "hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600";
+            });
+            if (element) {
+                element.className = "text-indigo-600 border-b-2 border-indigo-600 pb-1 whitespace-nowrap font-bold";
+            }
+            applyFilters();
+        }
+
+        function filterProducts() {
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById('search-input');
+            const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            const filtered = allProducts.filter(product => {
+                const productName = (product.name || '').toLowerCase();
+                const productDesc = (product.description || '').toLowerCase();
+                const productCat = (product.category || '').toLowerCase();
+
+                const matchesKeyword = !keyword || productName.includes(keyword) || productDesc.includes(keyword) || productCat.includes(keyword);
+
+                let matchesCategory = false;
+                if (currentCategory === 'Semua') {
+                    matchesCategory = true;
+                } else {
+                    const normSelectedCat = currentCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const normProductCat = productCat.replace(/[^a-z0-9]/g, '');
+                    matchesCategory = normProductCat === normSelectedCat;
+                }
+
+                return matchesKeyword && matchesCategory;
+            });
+
+            displayProducts(filtered);
+        }
+
+        function openDetailModal(productIndex) {
+            activeProduct = allProducts[productIndex];
+            activeImages = (activeProduct.images && activeProduct.images.length > 0) 
+                ? activeProduct.images 
+                : (activeProduct.image ? [activeProduct.image] : ['https://via.placeholder.com/300?text=No+Image']);
+            
+            activeSlideIndex = 0;
+            selectedQuantity = 1;
+            document.getElementById('modal-quantity').innerText = selectedQuantity;
+
+            document.getElementById('modal-product-name').innerText = activeProduct.name;
+            document.getElementById('modal-product-price').innerText = `Rp ${Number(activeProduct.price).toLocaleString('id-ID')}`;
+            document.getElementById('modal-product-weight').innerText = `⚖️ Berat: ${activeProduct.weight || 500} gram`;
+            document.getElementById('modal-product-desc').innerText = activeProduct.description || 'Tidak ada deskripsi mainan yang tersedia.';
+            document.getElementById('modal-product-stock').innerText = `Stok Tersedia: ${activeProduct.stock} unit`;
+            
+            const soldCount = calculateTotalSold(activeProduct);
+            document.getElementById('modal-product-sold').innerText = `${soldCount} terjual`;
+
+            const statusBadge = document.getElementById('modal-product-status');
+            const addBtn = document.getElementById('modal-add-btn');
+
+            if (activeProduct.stock > 0) {
+                statusBadge.className = 'text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200';
+                statusBadge.innerText = 'Ready Stock';
+                addBtn.disabled = false;
+                addBtn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-600/25 cursor-pointer';
+                addBtn.onclick = () => {
+                    addToCart(activeProduct, selectedQuantity);
+                    toggleDetailModal(false);
+                };
+            } else {
+                statusBadge.className = 'text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200';
+                statusBadge.innerText = 'Stok Habis';
+                addBtn.disabled = true;
+                addBtn.className = 'w-full bg-slate-100 text-slate-400 font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider cursor-not-allowed';
+                addBtn.onclick = null;
+            }
+
+            updateSliderView();
+            renderThumbnails();
+            toggleDetailModal(true);
+        }
+
+        function calculateTotalSold(product) {
+            if (typeof product.sold === 'number') return product.sold;
+            if (typeof product.totalSold === 'number') return product.totalSold;
+
+            try {
+                const orders = JSON.parse(localStorage.getItem('transgadget_orders')) || JSON.parse(localStorage.getItem('pesananMasuk')) || [];
+                let total = 0;
+                const targetId = product._id || product.id;
+                const targetName = (product.name || '').toLowerCase().trim();
+
+                orders.forEach(order => {
+                    if (order.items && Array.isArray(order.items)) {
+                        order.items.forEach(item => {
+                            const itemId = item._id || item.productId || item.id;
+                            const itemName = (item.name || '').toLowerCase().trim();
+                            if ((targetId && itemId && String(itemId) === String(targetId)) || (itemName && itemName === targetName)) {
+                                total += (parseInt(item.quantity) || 1);
+                            }
+                        });
+                    }
+                });
+                return total;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function updateModalQuantity(change) {
+            if (!activeProduct || activeProduct.stock <= 0) return;
+            const newQty = selectedQuantity + change;
+            if (newQty >= 1 && newQty <= activeProduct.stock) {
+                selectedQuantity = newQty;
+                document.getElementById('modal-quantity').innerText = selectedQuantity;
+            }
+        }
+
+        function updateSliderView() {
+            document.getElementById('detail-slider-img').src = activeImages[activeSlideIndex];
+            document.getElementById('slider-counter').innerText = `${activeSlideIndex + 1} / ${activeImages.length}`;
+
+            const prevBtn = document.getElementById('slider-prev');
+            const nextBtn = document.getElementById('slider-next');
+            if (activeImages.length <= 1) {
+                prevBtn.classList.add('hidden');
+                nextBtn.classList.add('hidden');
+            } else {
+                prevBtn.classList.remove('hidden');
+                nextBtn.classList.remove('hidden');
+            }
+
+            const thumbs = document.querySelectorAll('.thumb-item');
+            thumbs.forEach((t, i) => {
+                if (i === activeSlideIndex) {
+                    t.classList.add('border-indigo-600', 'ring-2', 'ring-indigo-600/30');
+                    t.classList.remove('border-slate-200');
+                } else {
+                    t.classList.remove('border-indigo-600', 'ring-2', 'ring-indigo-600/30');
+                    t.classList.add('border-slate-200');
+                }
+            });
+        }
+
+        function renderThumbnails() {
+            const container = document.getElementById('detail-thumbnails');
+            container.innerHTML = '';
+            if (activeImages.length <= 1) return;
+
+            activeImages.forEach((img, idx) => {
+                container.innerHTML += `
+                    <img src="${img}" onclick="setSlide(${idx})" class="thumb-item w-12 h-12 object-cover rounded-xl border border-slate-200 cursor-pointer flex-shrink-0 transition">
+                `;
+            });
+        }
+
+        function setSlide(index) {
+            activeSlideIndex = index;
+            updateSliderView();
+        }
+
+        function changeSlide(direction) {
+            activeSlideIndex += direction;
+            if (activeSlideIndex < 0) activeSlideIndex = activeImages.length - 1;
+            if (activeSlideIndex >= activeImages.length) activeSlideIndex = 0;
+            updateSliderView();
+        }
+
+        function toggleDetailModal(show) {
+            const modal = document.getElementById('detail-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function initMap() {
+            // Default titik koordinat toko: Ruko Elang Laut Boulevard, PIK, Jakarta Utara
+            const defaultLat = -6.115500;
+            const defaultLng = 106.744100;
+
+            if (!leafletMap) {
+                leafletMap = L.map('map').setView([defaultLat, defaultLng], 15);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(leafletMap);
+
+                leafletMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(leafletMap);
+
+                updateCoordsAndAddress(defaultLat, defaultLng);
+
+                leafletMarker.on('dragend', function () {
+                    const pos = leafletMarker.getLatLng();
+                    updateCoordsAndAddress(pos.lat, pos.lng);
+                });
+
+                leafletMap.on('click', function (e) {
+                    leafletMarker.setLatLng(e.latlng);
+                    updateCoordsAndAddress(e.latlng.lat, e.latlng.lng);
+                });
+            } else {
+                leafletMap.invalidateSize();
+            }
+        }
+
+        async function updateCoordsAndAddress(lat, lng) {
+            document.getElementById('cust-lat').value = lat.toFixed(6);
+            document.getElementById('cust-lng').value = lng.toFixed(6);
+            document.getElementById('map-status').innerText = `Titik terpilih: ${lat.toFixed(5)}, ${lng.toFixed(5)} (Sedang mengambil nama lokasi...)`;
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=id`);
+                const data = await res.json();
+                
+                if (data && data.address) {
+                    const addr = data.address;
+                    const district = addr.subdistrict || addr.district || addr.city_district || '';
+                    const subdistrict = addr.village || addr.suburb || addr.neighbourhood || '';
+                    const postal = addr.postcode || '';
+                    const displayAddress = data.display_name || '';
+
+                    if (district && !document.getElementById('cust-district').value) document.getElementById('cust-district').value = district;
+                    if (subdistrict && !document.getElementById('cust-subdistrict').value) document.getElementById('cust-subdistrict').value = subdistrict;
+                    if (postal && !document.getElementById('cust-postal').value) document.getElementById('cust-postal').value = postal;
+
+                    document.getElementById('map-status').innerText = `📍 Posisi: ${displayAddress.substring(0, 75)}...`;
+                }
+            } catch (e) {
+                document.getElementById('map-status').innerText = `Titik Terpasang: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+        }
+
+        async function searchLocationOnMap() {
+            const query = document.getElementById('map-search-input').value.trim();
+            if (!query) {
+                alert('Ketik nama lokasi atau jalan terlebih dahulu!');
+                return;
+            }
+
+            document.getElementById('map-status').innerText = 'Mencari lokasi di peta...';
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=1`);
+                const results = await res.json();
+
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+
+                    leafletMap.setView([lat, lon], 17);
+                    leafletMarker.setLatLng([lat, lon]);
+                    updateCoordsAndAddress(lat, lon);
+                } else {
+                    alert('Lokasi tidak ditemukan. Coba ketik nama jalan atau perumahan yang lebih spesifik.');
+                    document.getElementById('map-status').innerText = 'Lokasi tidak ditemukan.';
+                }
+            } catch (err) {
+                alert('Gagal mencari lokasi. Pastikan terhubung ke internet.');
+            }
+        }
+
+        function getCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert('Fitur GPS tidak didukung di browser ini.');
+                return;
+            }
+
+            document.getElementById('map-status').innerText = 'Mendeteksi lokasi GPS Anda...';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    if (leafletMap && leafletMarker) {
+                        leafletMap.setView([lat, lng], 17);
+                        leafletMarker.setLatLng([lat, lng]);
+                        updateCoordsAndAddress(lat, lng);
+                    }
+                },
+                (err) => {
+                    alert('Gagal mendeteksi GPS. Silakan gunakan pencarian lokasi di atas peta.');
+                    document.getElementById('map-status').innerText = 'Gagal lacak GPS.';
+                },
+                { enableHighAccuracy: true }
+            );
+        }
+
+        function addToCart(product, qty = 1) {
+            const productId = product._id || product.id;
+            const existingIndex = cart.findIndex(item => (item._id || item.id) === productId);
+            const productWeight = parseInt(product.weight) || 500;
+            const numericPrice = Number(product.price) || 0;
+
+            if (existingIndex > -1) {
+                cart[existingIndex].quantity += qty;
+                cart[existingIndex].weight = productWeight;
+                cart[existingIndex].price = numericPrice;
+            } else {
+                cart.push({ ...product, id: productId, price: numericPrice, weight: productWeight, quantity: qty });
+            }
+            saveAndRefreshCart();
+            toggleCartModal(true);
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            saveAndRefreshCart();
+        }
+
+        function saveAndRefreshCart() {
+            localStorage.setItem('transgadget_toy_cart', JSON.stringify(cart));
+            updateCartUI();
+        }
+
+        function getTotalWeight() {
+            return cart.reduce((acc, item) => acc + ((parseInt(item.weight) || 500) * item.quantity), 0);
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items-container');
+            const badge = document.getElementById('cart-badge');
+            const formContainer = document.getElementById('checkout-form-container');
+            
+            container.innerHTML = '';
+            subtotalAmount = 0;
+            let totalCount = 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-xs text-center py-8">Keranjang belanja mainan Anda masih kosong.</p>`;
+                badge.classList.add('hidden');
+                if (formContainer) formContainer.classList.add('hidden');
+            } else {
+                badge.classList.remove('hidden');
+                if (formContainer) formContainer.classList.remove('hidden');
+
+                cart.forEach((item, index) => {
+                    const itemPrice = Number(item.price) || 0;
+                    subtotalAmount += itemPrice * item.quantity;
+                    totalCount += item.quantity;
+                    const itemWeightTotal = (parseInt(item.weight) || 500) * item.quantity;
+                    container.innerHTML += `
+                        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+                            <div>
+                                <h4 class="font-bold text-slate-900">${item.name}</h4>
+                                <span class="text-slate-500">${item.quantity} x Rp ${itemPrice.toLocaleString('id-ID')} (${itemWeightTotal}g)</span>
+                            </div>
+                            <button onclick="removeFromCart(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1">Hapus</button>
+                        </div>
+                    `;
+                });
+            }
+
+            badge.innerText = totalCount;
+            document.getElementById('summary-subtotal').innerText = `Rp ${subtotalAmount.toLocaleString('id-ID')}`;
+            document.getElementById('summary-weight').innerText = getTotalWeight();
+            
+            calculateOngkir();
+        }
+
+        async function calculateOngkir() {
+            const cityId = document.getElementById('cust-city').value;
+            const courier = document.getElementById('cust-courier').value;
+            const serviceSelect = document.getElementById('cust-service');
+
+            if (!cityId) {
+                serviceSelect.innerHTML = '<option value="">-- Pilih Kota Dulu --</option>';
+                selectedOngkirCost = 0;
+                updateGrandTotal();
+                return;
+            }
+
+            serviceSelect.innerHTML = '<option value="">Memuat Ongkir...</option>';
+
+            try {
+                const res = await fetch('/api/check-ongkir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        destinationCityId: cityId,
+                        weight: getTotalWeight(),
+                        courier: courier
+                    })
+                });
+
+                const result = await res.json();
+                if (result.success && result.costs && result.costs.length > 0) {
+                    serviceSelect.innerHTML = '';
+                    result.costs.forEach((costItem) => {
+                        const price = Number(costItem.cost[0].value) || 0;
+                        const etd = costItem.cost[0].etd || '2-3';
+                        serviceSelect.innerHTML += `
+                            <option value="${price}" data-desc="${costItem.service} (${etd} Hari)">
+                                ${costItem.service} - Rp ${price.toLocaleString('id-ID')} (${etd} Hari)
+                            </option>
+                        `;
+                    });
+                    updateGrandTotal();
+                } else {
+                    renderFallbackServices();
+                }
+            } catch (err) {
+                renderFallbackServices();
+            }
+        }
+
+        function renderFallbackServices() {
+            const serviceSelect = document.getElementById('cust-service');
+            const totalKg = Math.ceil(getTotalWeight() / 1000) || 1;
+            const destinationCity = document.getElementById('cust-city-input').value.toLowerCase();
+
+            let baseRate = 14000;
+            if (destinationCity.includes('purwakarta') || destinationCity.includes('bandung')) {
+                baseRate = 22000;
+            } else if (!destinationCity.includes('jakarta')) {
+                baseRate = 28000;
+            }
+
+            const regPrice = Math.round(baseRate * totalKg);
+            const expPrice = Math.round((baseRate + 12000) * totalKg);
+
+            serviceSelect.innerHTML = `
+                <option value="${regPrice}" data-desc="REG (${destinationCity.includes('purwakarta') ? '1-2' : '2-3'} Hari)">REG - Rp ${regPrice.toLocaleString('id-ID')} (${destinationCity.includes('purwakarta') ? '1-2' : '2-3'} Hari)</option>
+                <option value="${expPrice}" data-desc="YES (1 Hari)">YES - Rp ${expPrice.toLocaleString('id-ID')} (1 Hari)</option>
+            `;
+            updateGrandTotal();
+        }
+
+        function updateGrandTotal() {
+            const serviceSelect = document.getElementById('cust-service');
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            
+            selectedOngkirCost = Number(serviceSelect.value) || 0;
+            selectedServiceDescription = selectedOption ? (selectedOption.getAttribute('data-desc') || '') : '';
+
+            document.getElementById('summary-ongkir').innerText = `Rp ${selectedOngkirCost.toLocaleString('id-ID')}`;
+            
+            const grandTotal = Number(subtotalAmount) + Number(selectedOngkirCost);
+            document.getElementById('cart-total').innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
+        }
+
+        function toggleCartModal(show) {
+            const modal = document.getElementById('cart-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    initMap();
+                    if (leafletMap) {
+                        leafletMap.invalidateSize();
+                    }
+                }, 350);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function checkout() {
+            if (cart.length === 0) {
+                alert('Keranjang belanja Anda masih kosong.');
+                return;
+            }
+
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const cityName = document.getElementById('cust-city-input').value.trim();
+            const cityId = document.getElementById('cust-city').value;
+            const district = document.getElementById('cust-district').value.trim();
+            const subdistrict = document.getElementById('cust-subdistrict').value.trim();
+            const postal = document.getElementById('cust-postal').value.trim();
+            const address = document.getElementById('cust-address').value.trim();
+            const courier = document.getElementById('cust-courier').value.toUpperCase();
+            const payment = document.getElementById('cust-payment').value;
+            const lat = document.getElementById('cust-lat').value;
+            const lng = document.getElementById('cust-lng').value;
+
+            if (!name || !phone || !cityId || !district || !subdistrict || !postal || !address) {
+                alert('Mohon pilih Kota/Kabupaten yang valid dari daftar pencarian serta lengkapi seluruh Alamat!');
+                return;
+            }
+
+            const checkoutBtn = document.getElementById('checkout-btn');
+            checkoutBtn.innerText = 'Memproses Pesanan...';
+            checkoutBtn.disabled = true;
+
+            const orderId = Math.floor(100000 + Math.random() * 900000).toString();
+            const orderDate = new Date().toLocaleString('id-ID');
+            const totalAmount = Number(subtotalAmount) + Number(selectedOngkirCost);
+
+            const fullAddressText = `${address}, Kel. ${subdistrict}, Kec. ${district}, ${cityName} (${postal})`;
+            const googleMapsUrl = (lat && lng) ? `https://maps.google.com/?q=${lat},${lng}` : '-';
+
+            const newOrder = {
+                id: orderId,
+                orderId: orderId,
+                date: orderDate,
+                createdAt: new Date().toISOString(),
+                customer: { 
+                    name, 
+                    phone, 
+                    whatsapp: phone,
+                    city: cityName, 
+                    district,
+                    subdistrict,
+                    postal,
+                    address: fullAddressText, 
+                    mapsUrl: googleMapsUrl,
+                    courier: `${courier} - ${selectedServiceDescription}`, 
+                    payment 
+                },
+                items: cart,
+                subtotal: Number(subtotalAmount),
+                ongkir: Number(selectedOngkirCost),
+                total: totalAmount,
+                totalAmount: totalAmount,
+                status: 'Diproses oleh Admin'
+            };
+
+            const orders = JSON.parse(localStorage.getItem('transgadget_orders')) || [];
+            orders.push(newOrder);
+            localStorage.setItem('transgadget_orders', JSON.stringify(orders));
+
+            const pesananMasuk = JSON.parse(localStorage.getItem('pesananMasuk')) || [];
+            pesananMasuk.push(newOrder);
+            localStorage.setItem('pesananMasuk', JSON.stringify(pesananMasuk));
+
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        customerName: name,
+                        customerPhone: phone,
+                        address: fullAddressText,
+                        courier: `${courier} - ${selectedServiceDescription}`,
+                        paymentMethod: payment,
+                        customer: {
+                            name: name,
+                            phone: phone,
+                            whatsapp: phone,
+                            address: fullAddressText,
+                            courier: `${courier} - ${selectedServiceDescription}`,
+                            payment: payment
+                        },
+                        items: cart.map(item => ({
+                            productId: item._id || item.id,
+                            name: item.name,
+                            price: Number(item.price) || 0,
+                            quantity: item.quantity
+                        })),
+                        totalAmount: totalAmount,
+                        status: 'Diproses oleh Admin'
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    console.warn('Peringatan: Gagal menyimpan ke database MongoDB:', result.message);
+                }
+            } catch (error) {
+                console.error('Error koneksi POST /api/orders:', error);
+            }
+
+            showPaymentModal(orderId, totalAmount, payment, newOrder);
+
+            cart = [];
+            saveAndRefreshCart();
+            toggleCartModal(false);
+
+            checkoutBtn.innerText = 'Proses Checkout Sekarang';
+            checkoutBtn.disabled = false;
+        }
+
+        function showPaymentModal(orderId, total, paymentMethod, orderData) {
+            document.getElementById('pay-order-id').innerText = `#${orderId}`;
+            document.getElementById('pay-total-amount').innerText = `Rp ${Number(total).toLocaleString('id-ID')}`;
+            
+            const detailsContainer = document.getElementById('payment-details-content');
+            detailsContainer.innerHTML = '';
+
+            if (paymentMethod.includes('BCA')) {
+                detailsContainer.innerHTML = `
+                    <p class="font-bold text-slate-800">Bank BCA</p>
+                    <p class="text-slate-500">No. Rekening: <span class="font-extrabold text-slate-900 select-all">123-456-7890</span></p>
+                    <p class="text-slate-500">Atas Nama: <span class="font-semibold text-slate-800">PT TransGadget Indonesia</span></p>
+                `;
+            } else if (paymentMethod.includes('Mandiri')) {
+                detailsContainer.innerHTML = `
+                    <p class="font-bold text-slate-800">Bank Mandiri</p>
+                    <p class="text-slate-500">No. Rekening: <span class="font-extrabold text-slate-900 select-all">140-00-1234567-8</span></p>
+                    <p class="text-slate-500">Atas Nama: <span class="font-semibold text-slate-800">PT TransGadget Indonesia</span></p>
+                `;
+            } else if (paymentMethod.includes('QRIS')) {
+                detailsContainer.innerHTML = `
+                    <p class="font-bold text-slate-800 mb-1">QRIS / E-Wallet (GoPay, OVO, Dana, ShopeePay)</p>
+                    <div class="bg-white border border-slate-200 p-2 rounded-xl inline-block my-1">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TransGadgetToyStore" alt="QRIS Code" class="w-32 h-32 object-contain mx-auto">
+                    </div>
+                    <p class="text-[10px] text-slate-400">Scan QRIS di atas menggunakan aplikasi e-wallet Anda.</p>
+                `;
+            } else {
+                detailsContainer.innerHTML = `
+                    <p class="font-bold text-slate-800">COD (Cash on Delivery)</p>
+                    <p class="text-slate-500">Siapkan uang pas sebesar <span class="font-bold text-slate-900">Rp ${Number(total).toLocaleString('id-ID')}</span> saat kurir tiba di alamat Anda.</p>
+                `;
+            }
+
+            let itemDetails = '';
+            orderData.items.forEach((item, index) => {
+                const itemTotal = (Number(item.price) || 0) * item.quantity;
+                itemDetails += `   ${index + 1}. *${item.name}* (${item.quantity}x)\n   ↳ Rp ${itemTotal.toLocaleString('id-ID')}\n`;
+            });
+
+            const waMessage = 
+`━━━━━━━━━━━━━━━━━━━━━━
+   *KONFIRMASI PESANAN BARU*
+   *TRANSGADGET TOY STORE*
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 *DETAIL TRANSAKSI*
+• *ID Pesanan:* #${orderId}
+• *Tanggal:* ${orderData.date}
+
+👤 *DATA PEMBELI*
+• *Nama:* ${orderData.customer.name}
+• *No. HP/WA:* ${orderData.customer.phone}
+• *Kota:* ${orderData.customer.city}
+• *Kecamatan:* ${orderData.customer.district}
+• *Kelurahan:* ${orderData.customer.subdistrict}
+• *Kode Pos:* ${orderData.customer.postal}
+• *Alamat Lengkap:* ${orderData.customer.address}
+• *Google Maps Pinpoint:* ${orderData.customer.mapsUrl}
+
+🚚 *PENGIRIMAN & PEMBAYARAN*
+• *Kurir:* ${orderData.customer.courier}
+• *Metode:* ${orderData.customer.payment}
+
+🛍️ *RINCIAN ITEM*
+${itemDetails}
+━━━━━━━━━━━━━━━━━━━━━━
+💵 *Subtotal Produk:* Rp ${Number(orderData.subtotal).toLocaleString('id-ID')}
+🚚 *Ongkos Kirim:* Rp ${Number(orderData.ongkir).toLocaleString('id-ID')}
+💰 *TOTAL PEMBAYARAN:*
+*Rp ${Number(total).toLocaleString('id-ID')}*
+━━━━━━━━━━━━━━━━━━━━━━
+
+Halo Admin TransGadget, saya ingin mengonfirmasi pesanan checkout di atas dan melampirkan bukti pembayaran. Terima kasih!`;
+
+            const adminPhoneNumber = '6289633973285';
+            const waUrl = `https://wa.me/${adminPhoneNumber}?text=${encodeURIComponent(waMessage)}`;
+
+            document.getElementById('wa-confirm-btn').href = waUrl;
+            document.getElementById('payment-modal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
+        }
+
+        initStore();
+    </script>
+</body>
+</html>

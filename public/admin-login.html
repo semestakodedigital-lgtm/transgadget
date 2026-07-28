@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login — TransGadget Store</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .dynamic-bg {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body class="dynamic-bg text-slate-900 min-h-screen flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
+
+    <div class="w-full max-w-md">
+        <!-- Logo & Branding -->
+        <div class="text-center mb-8 flex flex-col items-center">
+            <!-- Gambar Logo TransGadget -->
+            <img src="/images/logo.png" alt="TransGadget Logo" class="h-20 w-auto object-contain drop-shadow-md mb-2">
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">TransGadget Admin</h1>
+            <p class="text-xs text-slate-500 font-medium">Masuk untuk mengelola katalog produk & pesanan</p>
+        </div>
+
+        <!-- Card Form Login -->
+        <div class="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-200/50 space-y-6">
+            
+            <!-- Alert Pesan Error -->
+            <div id="error-alert" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold p-3.5 rounded-2xl flex items-center gap-2">
+                <span>⚠️</span>
+                <span id="error-message">Username atau password salah!</span>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider text-[11px]">Username Admin</label>
+                    <input type="text" 
+                           id="admin-username" 
+                           required 
+                           placeholder="Masukkan username..." 
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1.5 uppercase tracking-wider text-[11px]">Password</label>
+                    <div class="relative">
+                        <input type="password" 
+                               id="admin-password" 
+                               required 
+                               placeholder="Masukkan password..." 
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-semibold focus:outline-none focus:border-indigo-500 focus:bg-white transition pr-10">
+                        <button type="button" 
+                                onclick="togglePasswordVisibility()" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold px-1">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-1 text-slate-500 text-[11px]">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="remember-me" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="font-medium">Ingat Saya</span>
+                    </label>
+                </div>
+
+                <button type="submit" 
+                        id="login-btn"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-600/25 mt-2 flex items-center justify-center gap-2">
+                    <span>Masuk ke Dashboard</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer Info -->
+        <p class="text-center text-[11px] text-slate-400 mt-8">
+            &copy; 2026 TransGadget Store. Admin Panel.
+        </p>
+    </div>
+
+    <script>
+        // Cek jika admin sudah terautentikasi sebelumnya
+        document.addEventListener('DOMContentLoaded', () => {
+            const isAuth = localStorage.getItem('tg_admin_session') || sessionStorage.getItem('tg_admin_session');
+            if (isAuth === 'true') {
+                window.location.href = '/index.html'; // Redirect otomatis ke Dashboard index.html
+            }
+        });
+
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('admin-password');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+            } else {
+                pwdInput.type = 'password';
+            }
+        }
+
+        async function handleAdminLogin(event) {
+            event.preventDefault();
+
+            const usernameInput = document.getElementById('admin-username').value.trim();
+            const passwordInput = document.getElementById('admin-password').value.trim();
+            const rememberMe = document.getElementById('remember-me').checked;
+            
+            const alertBox = document.getElementById('error-alert');
+            const alertMsg = document.getElementById('error-message');
+            const loginBtn = document.getElementById('login-btn');
+
+            alertBox.classList.add('hidden');
+            loginBtn.innerText = 'Memverifikasi...';
+            loginBtn.disabled = true;
+
+            try {
+                // Request verifikasi ke API Backend
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: usernameInput, password: passwordInput })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    saveSession(rememberMe);
+                    window.location.href = '/index.html'; // Redirect ke Dashboard index.html
+                } else {
+                    showError(result.message || 'Username atau password salah!');
+                }
+            } catch (err) {
+                // Fallback verifikasi lokal jika server belum terhubung
+                if (usernameInput === 'admin' && passwordInput === 'admin123') {
+                    saveSession(rememberMe);
+                    window.location.href = '/index.html'; // Redirect ke Dashboard index.html
+                } else {
+                    showError('Username atau password salah! (Default: admin / admin123)');
+                }
+            } finally {
+                loginBtn.innerText = 'Masuk ke Dashboard';
+                loginBtn.disabled = false;
+            }
+        }
+
+        function saveSession(remember) {
+            if (remember) {
+                localStorage.setItem('tg_admin_session', 'true');
+            } else {
+                sessionStorage.setItem('tg_admin_session', 'true');
+            }
+        }
+
+        function showError(message) {
+            const alertBox = document.getElementById('error-alert');
+            const alertMsg = document.getElementById('error-message');
+            alertMsg.innerText = message;
+            alertBox.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
