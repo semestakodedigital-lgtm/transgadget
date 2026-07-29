@@ -8,6 +8,7 @@ const axios = require('axios'); // Modul axios untuk HTTP Request ke API RajaOng
 const connectDB = require('./config/db'); // Modul koneksi MongoDB dari folder config
 const Product = require('./models/Product');
 const Order = require('./models/Order'); // Model MongoDB untuk Pesanan
+const Banner = require('./models/Banner'); // Model MongoDB untuk Banner & Video Promosi
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +21,7 @@ const ORIGIN_CITY_ID = process.env.ORIGIN_CITY_ID || '155'; // Default fallback 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Menyediakan akses folder publik agar gambar bisa diakses dari browser
+// Menyediakan akses folder publik agar gambar/video bisa diakses dari browser
 app.use(express.static('public'));
 app.use('/uploads', express.static('public/uploads'));
 
@@ -75,10 +76,184 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // -------------------------------------------------------------
+// FITUR BANNER & VIDEO PROMOSI (MONGODB ATLAS)
+// -------------------------------------------------------------
+
+// Endpoint GET: Ambil daftar banner/video dari MongoDB Atlas
+app.get('/api/banners', async (req, res) => {
+    try {
+        let banners = await Banner.find().sort({ createdAt: -1 });
+        
+        if (banners.length === 0) {
+            const defaultBanners = [
+                {
+                    title: 'Video Showcase Koleksi Mainan',
+                    subtitle: 'Saksikan review singkat dan keseruan action figure eksklusif kami.',
+                    badge: 'Video Spotlight',
+                    url: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-videogame-controller-41295-large.mp4',
+                    image: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-videogame-controller-41295-large.mp4',
+                    images: ['https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-videogame-controller-41295-large.mp4'],
+                    isActive: true
+                },
+                {
+                    title: 'Official Toy Collector Space',
+                    subtitle: 'Temukan koleksi Action Figure, Gundam, dan Board Game original terlengkap.',
+                    badge: 'New Collection',
+                    url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80',
+                    image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80',
+                    images: ['https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80'],
+                    isActive: true
+                }
+            ];
+            await Banner.insertMany(defaultBanners);
+            banners = await Banner.find().sort({ createdAt: -1 });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: banners
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Endpoint POST: Tambah banner/video promosi baru ke MongoDB Atlas (Mendukung Multi-File Upload)
+app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
+    try {
+        const { title, subtitle, badge, existingImages } = req.body;
+        let images = [];
+        
+        if (existingImages) {
+            try {
+                images = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
+            } catch (e) {
+                images = [];
+            }
+        }
+
+        if (req.files && req.files.length > 0) {
+            const uploadedPaths = req.files.map(file => `/uploads/${file.filename}`);
+            images = images.concat(uploadedPaths);
+        }
+
+        const primaryImage = images[0] || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80';
+
+        const newBanner = new Banner({
+            title: title || 'Promo Spesial TransGadget',
+            subtitle: subtitle || 'Dapatkan penawaran mainan terbaik minggu ini.',
+            badge: badge || 'Promo',
+            image: primaryImage,
+            url: primaryImage,
+            images: images.length > 0 ? images : [primaryImage],
+            isActive: true
+        });
+
+        const savedBanner = await newBanner.save();
+        res.status(201).json({
+            success: true,
+            message: 'Banner/Video promosi berhasil disimpan ke MongoDB Atlas',
+            data: savedBanner
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Endpoint PUT: Memperbarui banner/video berdasarkan ID (Mendukung Existing & New Files)
+app.put('/api/banners/:id', upload.array('imageFile', 10), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, subtitle, badge, existingImages } = req.body;
+        
+        let images = [];
+        
+        if (existingImages) {
+            try {
+                images = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
+            } catch (e) {
+                images = [];
+            }
+        }
+
+        // Menambahkan semua file baru yang diunggah ke dalam array
+        if (req.files && req.files.length > 0) {
+            const uploadedPaths = req.files.map(file => `/uploads/${file.filename}`);
+            images = images.concat(uploadedPaths);
+        }
+
+        const primaryImage = images[0] || '';
+
+        const updateData = {
+            title,
+            subtitle,
+            badge,
+            image: primaryImage,
+            url: primaryImage,
+            images: images.length > 0 ? images : [primaryImage]
+        };
+
+        const updatedBanner = await Banner.findByIdAndUpdate(id, updateData, {
+            returnDocument: 'after',
+            runValidators: true
+        });
+
+        if (!updatedBanner) {
+            return res.status(404).json({
+                success: false,
+                message: 'Banner tidak ditemukan'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Banner berhasil diperbarui',
+            data: updatedBanner
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Endpoint DELETE: Menghapus banner berdasarkan ID
+app.delete('/api/banners/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedBanner = await Banner.findByIdAndDelete(id);
+
+        if (!deletedBanner) {
+            return res.status(404).json({
+                success: false,
+                message: 'Banner tidak ditemukan'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Banner berhasil dihapus dari database',
+            data: deletedBanner
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// -------------------------------------------------------------
 // FITUR CEK ONGKIR (RAJAONGKIR API INTEGRATION)
 // -------------------------------------------------------------
 
-// Daftar Kota Dummy Fallback jika API Key RajaOngkir belum dikonfigurasi
 const DUMMY_CITIES = [
     { city_id: '152', city_name: 'Jakarta Pusat', type: 'Kota' },
     { city_id: '151', city_name: 'Jakarta Barat', type: 'Kota' },
@@ -92,7 +267,6 @@ const DUMMY_CITIES = [
     { city_id: '278', city_name: 'Medan', type: 'Kota' }
 ];
 
-// Endpoint GET: Ambil daftar kota/kabupaten
 app.get('/api/cities', async (req, res) => {
     try {
         if (!RAJAONGKIR_API_KEY) {
@@ -101,7 +275,7 @@ app.get('/api/cities', async (req, res) => {
 
         const response = await axios.get('https://api.rajaongkir.com/starter/city', {
             headers: { key: RAJAONGKIR_API_KEY },
-            timeout: 4000 // Timeout 4 detik untuk mencegah proses menggantung
+            timeout: 4000
         });
 
         res.status(200).json({
@@ -114,7 +288,6 @@ app.get('/api/cities', async (req, res) => {
     }
 });
 
-// Endpoint POST: Hitung biaya ongkos kirim berdasarkan akumulasi berat total & kurir
 app.post('/api/check-ongkir', async (req, res) => {
     try {
         const { destinationCityId, weight, courier } = req.body;
@@ -123,7 +296,6 @@ app.post('/api/check-ongkir', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Kota tujuan harus dipilih' });
         }
 
-        // Kalkulasi berat total dalam gram & pembulatan ke atas per kilogram (totalKg)
         const totalWeight = Number(weight) || 1000;
         const totalKg = Math.ceil(totalWeight / 1000) || 1;
         const courierCode = (courier || 'jne').toLowerCase();
@@ -149,7 +321,6 @@ app.post('/api/check-ongkir', async (req, res) => {
             });
         }
 
-        // Permintaan ke RajaOngkir dengan total berat aktual & timeout mandiri selama 4 detik
         const response = await axios.post('https://api.rajaongkir.com/starter/cost', {
             origin: process.env.ORIGIN_CITY_ID || ORIGIN_CITY_ID,
             destination: destinationCityId,
@@ -168,7 +339,6 @@ app.post('/api/check-ongkir', async (req, res) => {
     } catch (error) {
         console.warn('Gagal/Timeout saat memuat ongkir dari RajaOngkir:', error.message);
         
-        // Kalkulasi Ongkir Cadangan (Fallback Lokal) otomatis dengan akumulasi berat per kg
         const totalWeight = Number(req.body.weight) || 1000;
         const totalKg = Math.ceil(totalWeight / 1000) || 1;
         const baseRate = 16000;
@@ -198,7 +368,6 @@ app.post('/api/check-ongkir', async (req, res) => {
 // ENDPOINT PRODUK
 // -------------------------------------------------------------
 
-// 2. Endpoint GET: Mengambil semua data produk
 app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find();
@@ -215,7 +384,6 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// 3. Endpoint POST: Menambahkan produk baru (Multiple Image Upload & Weight Handling)
 app.post('/api/products', upload.array('imageFile', 10), async (req, res) => {
   try {
     const { name, category, price, stock, weight, description } = req.body;
@@ -251,11 +419,28 @@ app.post('/api/products', upload.array('imageFile', 10), async (req, res) => {
   }
 });
 
-// 4. Endpoint PUT: Memperbarui produk berdasarkan ID (Termasuk Weight Update)
+// Endpoint PUT: Memperbarui produk berdasarkan ID (Mendukung Existing & New Files)
 app.put('/api/products/:id', upload.array('imageFile', 10), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, price, stock, weight, description } = req.body;
+    const { name, category, price, stock, weight, description, existingImages } = req.body;
+
+    let images = [];
+
+    if (existingImages) {
+        try {
+            images = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
+        } catch (e) {
+            images = [];
+        }
+    }
+
+    if (req.files && req.files.length > 0) {
+      const newImagePaths = req.files.map(file => `/uploads/${file.filename}`);
+      images = images.concat(newImagePaths);
+    }
+
+    const primaryImage = images[0] || '';
 
     const updateData = {
         name,
@@ -263,34 +448,10 @@ app.put('/api/products/:id', upload.array('imageFile', 10), async (req, res) => 
         price: Number(price),
         stock: Number(stock),
         weight: Number(weight) || 500,
-        description
+        description,
+        image: primaryImage,
+        images: images.length > 0 ? images : [primaryImage]
     };
-
-    if (req.files && req.files.length > 0) {
-      const newImagePaths = req.files.map(file => `/uploads/${file.filename}`);
-      updateData.images = newImagePaths;
-      updateData.image = newImagePaths[0];
-      
-      const existingProduct = await Product.findById(id);
-      if (existingProduct) {
-        if (existingProduct.images && existingProduct.images.length > 0) {
-          existingProduct.images.forEach(imgUrl => {
-            if (imgUrl && imgUrl.startsWith('/uploads/')) {
-              const oldPath = path.join(__dirname, 'public', imgUrl);
-              if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
-              }
-            }
-          });
-        } 
-        else if (existingProduct.image && existingProduct.image.startsWith('/uploads/')) {
-          const oldPath = path.join(__dirname, 'public', existingProduct.image);
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
-        }
-      }
-    }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
       returnDocument: 'after',
@@ -317,7 +478,6 @@ app.put('/api/products/:id', upload.array('imageFile', 10), async (req, res) => 
   }
 });
 
-// 5. Endpoint PUT: Kurangi Stok Produk Otomatis
 app.put('/api/products/:id/reduce-stock', async (req, res) => {
   try {
     const { id } = req.params;
@@ -355,7 +515,6 @@ app.put('/api/products/:id/reduce-stock', async (req, res) => {
   }
 });
 
-// 6. Endpoint DELETE: Menghapus produk berdasarkan ID
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -366,23 +525,6 @@ app.delete('/api/products/:id', async (req, res) => {
         success: false,
         message: 'Produk tidak ditemukan'
       });
-    }
-
-    if (deletedProduct.images && deletedProduct.images.length > 0) {
-      deletedProduct.images.forEach(imgUrl => {
-        if (imgUrl && imgUrl.startsWith('/uploads/')) {
-          const filePath = path.join(__dirname, 'public', imgUrl);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-      });
-    } 
-    else if (deletedProduct.image && deletedProduct.image.startsWith('/uploads/')) {
-      const filePath = path.join(__dirname, 'public', deletedProduct.image);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
     }
 
     res.status(200).json({
@@ -402,7 +544,6 @@ app.delete('/api/products/:id', async (req, res) => {
 // ENDPOINT MANAJEMEN PESANAN (MONGODB)
 // -------------------------------------------------------------
 
-// GET: Ambil semua pesanan dari MongoDB
 app.get('/api/orders', async (req, res) => {
     try {
         const orders = await Order.find().sort({ createdAt: -1 });
@@ -418,7 +559,6 @@ app.get('/api/orders', async (req, res) => {
     }
 });
 
-// POST: Buat Pesanan Baru ke MongoDB
 app.post('/api/orders', async (req, res) => {
     try {
         const { 
@@ -435,6 +575,28 @@ app.post('/api/orders', async (req, res) => {
             totalAmount, 
             status 
         } = req.body;
+
+        // Validasi dan Kurangi Stok Produk Otomatis Berdasarkan Item Keranjang
+        if (items && items.length > 0) {
+            for (const item of items) {
+                const productId = item.productId || item._id;
+                const buyQty = Number(item.quantity) || 1;
+
+                if (productId) {
+                    const product = await Product.findById(productId);
+                    if (product) {
+                        if (product.stock < buyQty) {
+                            return res.status(400).json({
+                                success: false,
+                                message: `Stok untuk produk "${product.name}" tidak mencukupi (Sisa: ${product.stock})`
+                            });
+                        }
+                        product.stock -= buyQty;
+                        await product.save();
+                    }
+                }
+            }
+        }
 
         const newOrder = new Order({
             orderId: orderId || Math.floor(100000 + Math.random() * 900000).toString(),
@@ -455,7 +617,7 @@ app.post('/api/orders', async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Pesanan berhasil disimpan ke MongoDB',
+            message: 'Pesanan berhasil disimpan dan stok produk telah diperbarui',
             data: savedOrder
         });
     } catch (error) {
@@ -467,7 +629,6 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// PUT: Perbarui Status Pesanan 
 app.put('/api/orders/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
@@ -499,7 +660,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
     }
 });
 
-// DELETE: Hapus Pesanan berdasarkan ID dari MongoDB
 app.delete('/api/orders/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -525,7 +685,6 @@ app.delete('/api/orders/:id', async (req, res) => {
     }
 });
 
-// DELETE: Hapus Semua Pesanan dari MongoDB (Fitur Clear All)
 app.delete('/api/orders', async (req, res) => {
     try {
         await Order.deleteMany({});
