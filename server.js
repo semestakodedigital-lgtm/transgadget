@@ -5,44 +5,51 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // Modul axios untuk HTTP Request ke API RajaOngkir
+const cloudinary = require('cloudinary').v2; // Modul Cloudinary
+const { CloudinaryStorage } = require('multer-storage-cloudinary'); // Modul Storage Multer ke Cloudinary
+const { Xendit } = require('xendit-node'); // DIPERBARUI: Modul Xendit Payment Gateway
 const connectDB = require('./config/db'); // Modul koneksi MongoDB dari folder config
 const Product = require('./models/Product');
 const Order = require('./models/Order'); // Model MongoDB untuk Pesanan
 const Banner = require('./models/Banner'); // Model MongoDB untuk Banner & Video Promosi
+const Transaction = require('./models/Transaction'); // MODEL BARU: Untuk Laporan Keuangan Independen
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Config RajaOngkir dari .env (Menggunakan process.env.ORIGIN_CITY_ID secara dinamis)
-const RAJAONGKIR_API_KEY = process.env.RAJAONGKIR_API_KEY || '';
-const ORIGIN_CITY_ID = process.env.ORIGIN_CITY_ID || '155'; // Default fallback ke Jakarta Utara (155)
+// Config Xendit SDK Initialization - DIPERBARUI
+const xenditInstance = new Xendit({
+    secretKey: process.env.XENDIT_SECRET_KEY || ''
+});
 
 // Middleware untuk membaca JSON dan URL-encoded data dari body request
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Menyediakan akses folder publik agar gambar/video bisa diakses dari browser
+// Menyediakan akses folder publik agar file statis lain tetap bisa diakses dari browser
 app.use(express.static('public'));
-app.use('/uploads', express.static('public/uploads'));
 
-// Konfigurasi Penyimpanan Multer (Simpan file fisik ke folder public/uploads)
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, 'public/uploads');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+// -------------------------------------------------------------
+// KONFIGURASI CLOUDINARY & MULTER STORAGE
+// -------------------------------------------------------------
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'transgadget_uploads', // Nama folder penampung di Cloudinary Anda
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'mp4'],
+        resource_type: 'auto' // Mendukung gambar maupun video (untuk banner)
     }
 });
 
 const upload = multer({ storage: storage });
 
-// 1. Menjalankan Koneksi ke Database MongoDB menggunakan modul config/db.js
+// 1. Menjalankan Koneksi ke Database MongoDB
 connectDB();
 
 // Root Endpoint
@@ -51,33 +58,42 @@ app.get('/', (req, res) => {
 });
 
 // -------------------------------------------------------------
-// FITUR AUTENTIKASI ADMIN
+// FITUR PEMBAYARAN XENDIT (CREATE INVOICE)
 // -------------------------------------------------------------
 
-// Endpoint POST: Verifikasi Login Admin
-app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
+app.post('/api/create-xendit-invoice', async (req, res) => {
+    try {
+        const { orderId, amount, customerEmail, customerName, description } = req.body;
 
-    // Kredensial Admin diambil dari .env (dengan fallback default jika belum diset)
-    const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+        // Menggunakan instance xenditInstance untuk mengakses Invoice
+        const response = await xenditInstance.Invoice.createInvoice({
+            data: {
+                externalId: orderId ? `INV-${orderId}-${Date.now()}` : `INV-${Date.now()}`,
+                amount: Number(amount) || 10000,
+                payerEmail: customerEmail || 'customer@transgadget.com',
+                description: description || 'Pembayaran Pesanan TransGadget Store',
+                customer: {
+                    givenNames: customerName || 'Pelanggan TransGadget'
+                },
+                successRedirectUrl: `${req.protocol}://${req.get('host')}/customer.html?status=success`,
+                failureRedirectUrl: `${req.protocol}://${req.get('host')}/customer.html?status=failed`,
+            }
+        });
 
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: 'Login Admin Berhasil'
+            invoiceUrl: response.invoiceUrl,
+            externalId: response.externalId,
+            status: response.status
+        });
+    } catch (error) {
+        console.error('Gagal membuat Xendit Invoice:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
-
-    return res.status(401).json({
-        success: false,
-        message: 'Username atau password salah!'
-    });
 });
-
-// -------------------------------------------------------------
-// FITUR BANNER & VIDEO PROMOSI (MONGODB ATLAS)
-// -------------------------------------------------------------
 
 // Endpoint GET: Ambil daftar banner/video dari MongoDB Atlas
 app.get('/api/banners', async (req, res) => {
@@ -121,7 +137,7 @@ app.get('/api/banners', async (req, res) => {
     }
 });
 
-// Endpoint POST: Tambah banner/video promosi baru ke MongoDB Atlas (Mendukung Multi-File Upload)
+// Endpoint POST: Tambah banner/video promosi baru ke MongoDB Atlas (Cloudinary URL)
 app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
     try {
         const { title, subtitle, badge, existingImages } = req.body;
@@ -136,8 +152,8 @@ app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
         }
 
         if (req.files && req.files.length > 0) {
-            const uploadedPaths = req.files.map(file => `/uploads/${file.filename}`);
-            images = images.concat(uploadedPaths);
+            const uploadedUrls = req.files.map(file => file.path); // file.path berisi URL Cloudinary
+            images = images.concat(uploadedUrls);
         }
 
         const primaryImage = images[0] || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80';
@@ -155,7 +171,7 @@ app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
         const savedBanner = await newBanner.save();
         res.status(201).json({
             success: true,
-            message: 'Banner/Video promosi berhasil disimpan ke MongoDB Atlas',
+            message: 'Banner/Video promosi berhasil disimpan ke MongoDB Atlas via Cloudinary',
             data: savedBanner
         });
     } catch (error) {
@@ -166,7 +182,7 @@ app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
     }
 });
 
-// Endpoint PUT: Memperbarui banner/video berdasarkan ID (Mendukung Existing & New Files)
+// Endpoint PUT: Memperbarui banner/video berdasarkan ID
 app.put('/api/banners/:id', upload.array('imageFile', 10), async (req, res) => {
     try {
         const { id } = req.params;
@@ -182,10 +198,9 @@ app.put('/api/banners/:id', upload.array('imageFile', 10), async (req, res) => {
             }
         }
 
-        // Menambahkan semua file baru yang diunggah ke dalam array
         if (req.files && req.files.length > 0) {
-            const uploadedPaths = req.files.map(file => `/uploads/${file.filename}`);
-            images = images.concat(uploadedPaths);
+            const uploadedUrls = req.files.map(file => file.path);
+            images = images.concat(uploadedUrls);
         }
 
         const primaryImage = images[0] || '';
@@ -253,6 +268,8 @@ app.delete('/api/banners/:id', async (req, res) => {
 // -------------------------------------------------------------
 // FITUR CEK ONGKIR (RAJAONGKIR API INTEGRATION)
 // -------------------------------------------------------------
+const RAJAONGKIR_API_KEY = process.env.RAJAONGKIR_API_KEY || '';
+const ORIGIN_CITY_ID = process.env.ORIGIN_CITY_ID || '155'; // Default fallback ke Jakarta Utara (155)
 
 const DUMMY_CITIES = [
     { city_id: '152', city_name: 'Jakarta Pusat', type: 'Kota' },
@@ -365,7 +382,7 @@ app.post('/api/check-ongkir', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// ENDPOINT PRODUK
+// ENDPOINT PRODUK & PESANAN (DENGAN LAPORAN KEUANGAN MANDIRI)
 // -------------------------------------------------------------
 
 app.get('/api/products', async (req, res) => {
@@ -398,9 +415,9 @@ app.post('/api/products', upload.array('imageFile', 10), async (req, res) => {
     };
 
     if (req.files && req.files.length > 0) {
-      const imagePaths = req.files.map(file => `/uploads/${file.filename}`);
-      productData.images = imagePaths;
-      productData.image = imagePaths[0];
+      const imageUrls = req.files.map(file => file.path);
+      productData.images = imageUrls;
+      productData.image = imageUrls[0];
     }
 
     const newProduct = new Product(productData);
@@ -419,7 +436,6 @@ app.post('/api/products', upload.array('imageFile', 10), async (req, res) => {
   }
 });
 
-// Endpoint PUT: Memperbarui produk berdasarkan ID (Mendukung Existing & New Files)
 app.put('/api/products/:id', upload.array('imageFile', 10), async (req, res) => {
   try {
     const { id } = req.params;
@@ -436,8 +452,8 @@ app.put('/api/products/:id', upload.array('imageFile', 10), async (req, res) => 
     }
 
     if (req.files && req.files.length > 0) {
-      const newImagePaths = req.files.map(file => `/uploads/${file.filename}`);
-      images = images.concat(newImagePaths);
+      const newImageUrls = req.files.map(file => file.path);
+      images = images.concat(newImageUrls);
     }
 
     const primaryImage = images[0] || '';
@@ -495,7 +511,7 @@ app.put('/api/products/:id/reduce-stock', async (req, res) => {
     if (product.stock < reduceQty) {
       return res.status(400).json({
         success: false,
-        message: 'Stok tidak mencukupi untuk diproses'
+        message: 'Stok tidak mencukupi'
       });
     }
 
@@ -504,7 +520,7 @@ app.put('/api/products/:id/reduce-stock', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Stok produk berhasil dikurangi',
+      message: 'Stok berhasil dikurangi',
       data: product
     });
   } catch (error) {
@@ -519,188 +535,126 @@ app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const deletedProduct = await Product.findByIdAndDelete(id);
-
     if (!deletedProduct) {
-      return res.status(404).json({
-        success: false,
-        message: 'Produk tidak ditemukan'
-      });
+      return res.status(404).json({ success: false, message: 'Produk tidak ditemukan' });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'Produk berhasil dihapus',
-      data: deletedProduct
-    });
+    res.status(200).json({ success: true, message: 'Produk berhasil dihapus' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
-
-// -------------------------------------------------------------
-// ENDPOINT MANAJEMEN PESANAN (MONGODB)
-// -------------------------------------------------------------
 
 app.get('/api/orders', async (req, res) => {
     try {
         const orders = await Order.find().sort({ createdAt: -1 });
-        res.status(200).json({
-            success: true,
-            data: orders
-        });
+        res.status(200).json({ success: true, data: orders });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.post('/api/orders', async (req, res) => {
     try {
-        const { 
-            orderId, 
-            customerName, 
-            customerPhone, 
-            address, 
-            courier, 
-            paymentMethod, 
-            customer, 
-            items, 
-            subtotal, 
-            ongkir, 
-            totalAmount, 
-            status 
-        } = req.body;
-
-        // Validasi dan Kurangi Stok Produk Otomatis Berdasarkan Item Keranjang
+        const { orderId, customer, items, subtotal, ongkir, totalAmount, status } = req.body;
+        
         if (items && items.length > 0) {
             for (const item of items) {
-                const productId = item.productId || item._id;
-                const buyQty = Number(item.quantity) || 1;
-
-                if (productId) {
-                    const product = await Product.findById(productId);
-                    if (product) {
-                        if (product.stock < buyQty) {
-                            return res.status(400).json({
-                                success: false,
-                                message: `Stok untuk produk "${product.name}" tidak mencukupi (Sisa: ${product.stock})`
-                            });
-                        }
-                        product.stock -= buyQty;
-                        await product.save();
-                    }
+                const product = await Product.findById(item.productId || item._id);
+                if (product) {
+                    product.stock -= Number(item.quantity);
+                    await product.save();
                 }
             }
         }
 
-        const newOrder = new Order({
-            orderId: orderId || Math.floor(100000 + Math.random() * 900000).toString(),
-            customerName: customerName || (customer && customer.name) || 'Pelanggan TransGadget',
-            customerPhone: customerPhone || (customer && customer.phone) || '',
-            address: address || (customer && customer.address) || '',
-            courier: courier || (customer && customer.courier) || '',
-            paymentMethod: paymentMethod || (customer && customer.payment) || '',
-            customer: customer || {},
-            items: items || [],
-            subtotal: Number(subtotal) || 0,
-            ongkir: Number(ongkir) || 0,
-            totalAmount: Number(totalAmount) || 0,
-            status: status || 'Belum Diproses'
-        });
-
+        const newOrder = new Order({ orderId, customer, items, subtotal, ongkir, totalAmount, status });
         const savedOrder = await newOrder.save();
+        
+        // Jika pesanan langsung dibuat dengan status Selesai
+        if (status === 'Selesai') {
+            const existingTx = await Transaction.findOne({ orderId: savedOrder.orderId });
+            if (!existingTx) {
+                await Transaction.create({
+                    orderId: savedOrder.orderId,
+                    subtotal: savedOrder.subtotal || 0,
+                    ongkir: savedOrder.ongkir || 0,
+                    totalAmount: savedOrder.totalAmount
+                });
+            }
+        }
 
-        res.status(201).json({
-            success: true,
-            message: 'Pesanan berhasil disimpan dan stok produk telah diperbarui',
-            data: savedOrder
-        });
+        res.status(201).json({ success: true, data: savedOrder });
     } catch (error) {
-        console.error('Gagal menyimpan pesanan ke MongoDB:', error);
-        res.status(400).json({
-            success: false,
-            error: error.message
-        });
+        res.status(400).json({ success: false, error: error.message });
     }
 });
 
+// UPDATE STATUS PESANAN (Mencatat ke Transaction jika status "Selesai")
 app.put('/api/orders/:id/status', async (req, res) => {
     try {
-        const { id } = req.params;
         const { status } = req.body;
-
         const updatedOrder = await Order.findByIdAndUpdate(
-            id,
-            { status: status || 'Diproses oleh Admin' },
+            req.params.id, 
+            { status }, 
             { returnDocument: 'after' }
         );
 
         if (!updatedOrder) {
-            return res.status(404).json({
-                success: false,
-                message: 'Pesanan tidak ditemukan'
-            });
+            return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan' });
         }
 
-        res.status(200).json({
-            success: true,
-            message: 'Status pesanan berhasil diperbarui',
-            data: updatedOrder
-        });
+        // JIKA STATUS BERUBAH MENJADI SELESAI, CATAT KE TABEL TRANSAKSI KEUANGAN
+        if (status === 'Selesai') {
+            const existingTx = await Transaction.findOne({ orderId: updatedOrder.orderId });
+            if (!existingTx) {
+                await Transaction.create({
+                    orderId: updatedOrder.orderId,
+                    subtotal: updatedOrder.subtotal || 0,
+                    ongkir: updatedOrder.ongkir || 0,
+                    totalAmount: updatedOrder.totalAmount
+                });
+            }
+        }
+
+        res.status(200).json({ success: true, data: updatedOrder });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.delete('/api/orders/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        const deletedOrder = await Order.findByIdAndDelete(id);
-
-        if (!deletedOrder) {
-            return res.status(404).json({
-                success: false,
-                message: 'Pesanan tidak ditemukan'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Pesanan berhasil dihapus dari MongoDB',
-            data: deletedOrder
-        });
+        await Order.findByIdAndDelete(req.params.id);
+        // Data transaksi keuangan TIDAK ikut dihapus di sini, sehingga laporan aman!
+        res.status(200).json({ success: true, message: 'Pesanan dihapus' });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.delete('/api/orders', async (req, res) => {
+// -------------------------------------------------------------
+// ENDPOINT LAPORAN KEUANGAN (MENGAMBIL DARI TABEL TRANSAKSI MANDIRI)
+// -------------------------------------------------------------
+app.get('/api/financial-report', async (req, res) => {
     try {
-        await Order.deleteMany({});
+        const transactions = await Transaction.find().sort({ completedAt: -1 });
+        
+        const totalPendapatanKotor = transactions.reduce((acc, curr) => acc + (curr.subtotal || 0), 0);
+        const totalOngkir = transactions.reduce((acc, curr) => acc + (curr.ongkir || 0), 0);
+        const totalTransaksi = transactions.length;
+
         res.status(200).json({
             success: true,
-            message: 'Semua data pesanan berhasil dihapus dari MongoDB'
+            totalPendapatanKotor,
+            totalOngkir,
+            totalTransaksi,
+            data: transactions
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Menjalankan Server
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
 });

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TransGadget Admin — Toy Store Dashboard</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,7 +10,10 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        }
         .dynamic-bg {
             background-color: #f8fafc;
             background-image: 
@@ -24,27 +27,34 @@
             background: #e0e7ff !important;
             border: 2px dashed #6366f1 !important;
         }
+        .overflow-x-auto::-webkit-scrollbar {
+            height: 6px;
+        }
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 9999px;
+        }
     </style>
 </head>
 <body class="dynamic-bg text-slate-900 min-h-screen flex flex-col selection:bg-indigo-600 selection:text-white">
 
     <!-- Top Bar -->
-    <div class="bg-slate-950 text-white text-[11px] font-bold py-2.5 px-4 tracking-wider uppercase text-center shadow-sm">
+    <div class="bg-slate-950 text-white text-[10px] sm:text-[11px] font-bold py-2.5 px-4 tracking-wider uppercase text-center shadow-sm">
         🛡️ TransGadget Control Center • Admin Dashboard
     </div>
 
     <!-- Main Header -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <span class="text-xs font-extrabold uppercase tracking-widest bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm">Admin Panel</span>
-                <h1 class="text-lg font-extrabold text-slate-900 tracking-tight">TransGadget Management</h1>
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <span class="hidden sm:inline-block text-xs font-extrabold uppercase tracking-widest bg-indigo-600 text-white px-3 py-1 rounded-full shadow-sm">Admin</span>
+                <h1 class="text-xs sm:text-lg font-extrabold text-slate-900 tracking-tight">TransGadget Management</h1>
             </div>
-            <div class="flex items-center space-x-3">
-                <a href="/customer.html" target="_blank" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl transition shadow-sm">
-                    Lihat Toko (Customer View) &rarr;
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <a href="/customer.html" target="_blank" class="text-[11px] sm:text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 border border-indigo-100 px-3 sm:px-4 py-2 rounded-xl transition shadow-sm whitespace-nowrap">
+                    Lihat Toko &rarr;
                 </a>
-                <button onclick="logoutAdmin()" class="text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 border border-rose-200 px-3.5 py-2 rounded-xl transition shadow-sm">
+                <button onclick="logoutAdmin()" class="text-[11px] sm:text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 border border-rose-200 px-3 sm:px-3.5 py-2 rounded-xl transition shadow-sm whitespace-nowrap">
                     Logout 🚪
                 </button>
             </div>
@@ -52,25 +62,25 @@
     </header>
 
     <!-- Main Content Layout -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full space-y-12">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex-grow w-full space-y-8 sm:space-y-12">
         
         <!-- SECTION 0: MANAJEMEN BANNER & VIDEO PROMOSI -->
-        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-900/5">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900">🎬 Manajemen Multi-Video & Banner Promosi</h2>
-                    <p class="text-xs text-slate-500 mt-1">Unggah beberapa video promosi atau banner foto serta atur urutannya dengan drag & drop (MongoDB Atlas).</p>
+                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">🎬 Manajemen Multi-Video & Banner Promosi</h2>
+                    <p class="text-xs text-slate-500 mt-1">Unggah beberapa video promosi atau banner foto serta atur urutannya (MongoDB Atlas).</p>
                 </div>
-                <button onclick="openBannerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25">
+                <button onclick="openBannerModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25 whitespace-nowrap">
                     + Tambah Video / Banner
                 </button>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+            <div class="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+                <table class="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                         <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th class="py-3 px-4">Media Banner (Urutan Geser)</th>
+                            <th class="py-3 px-4">Media Banner</th>
                             <th class="py-3 px-4">Badge / Label</th>
                             <th class="py-3 px-4">Judul Banner</th>
                             <th class="py-3 px-4">Subjudul</th>
@@ -85,22 +95,22 @@
         </section>
 
         <!-- SECTION 1: MANAJEMEN PRODUK -->
-        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-900/5">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900">Daftar Produk Mainan</h2>
-                    <p class="text-xs text-slate-500 mt-1">Kelola stok, harga, berat, foto utama & kedua, kategori, dan informasi mainan.</p>
+                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">Daftar Produk Mainan</h2>
+                    <p class="text-xs text-slate-500 mt-1">Kelola stok, harga, berat, foto, kategori, dan informasi mainan.</p>
                 </div>
-                <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25">
+                <button onclick="openProductModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25 whitespace-nowrap">
                     + Tambah Produk Baru
                 </button>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+            <div class="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+                <table class="w-full text-left border-collapse min-w-[850px]">
                     <thead>
                         <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th class="py-3 px-4">Foto Produk (Urutan Geser)</th>
+                            <th class="py-3 px-4">Foto Produk</th>
                             <th class="py-3 px-4">Nama Mainan</th>
                             <th class="py-3 px-4">Kategori</th>
                             <th class="py-3 px-4">Harga</th>
@@ -118,86 +128,71 @@
         </section>
 
         <!-- SECTION 2: MANAJEMEN PESANAN MASUK -->
-        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-900/5">
+        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900">Pesanan Masuk</h2>
+                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">Pesanan Masuk</h2>
                     <p class="text-xs text-slate-500 mt-1">Daftar transaksi dan pesanan dari pelanggan yang tersimpan di database.</p>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <span id="order-count" class="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-2 rounded-xl">0 Pesanan</span>
-                    <button onclick="exportOrdersToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition shadow-md shadow-emerald-600/20 flex items-center space-x-1.5">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <span id="order-count" class="text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 px-3.5 py-2 rounded-xl">0 Pesanan</span>
+                    <button onclick="exportOrdersToExcel()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-1.5 whitespace-nowrap">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span>Ekspor Laporan</span>
+                        <span>Ekspor Excel (.xlsx)</span>
                     </button>
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th class="py-3 px-4">ID Pesanan & Waktu</th>
-                            <th class="py-3 px-4">Info Customer & Pengiriman</th>
-                            <th class="py-3 px-4">Daftar Item</th>
-                            <th class="py-3 px-4">Subtotal & Ongkir</th>
-                            <th class="py-3 px-4">Total Belanja</th>
-                            <th class="py-3 px-4">Status</th>
-                            <th class="py-3 px-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-order-table" class="text-xs divide-y divide-slate-100">
-                        <tr><td colspan="7" class="text-center py-8 text-slate-400">Belum ada pesanan masuk di database.</td></tr>
-                    </tbody>
-                </table>
+            <!-- Container Card Pesanan yang Bersih & Terstruktur -->
+            <div id="admin-orders-container" class="space-y-4">
+                <div class="text-center py-12 text-slate-400 text-xs">Belum ada pesanan masuk di database.</div>
             </div>
         </section>
 
         <!-- SECTION 3: LAPORAN KEUANGAN -->
-        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-8 shadow-xl shadow-slate-900/5">
+        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900">📊 Laporan Keuangan Toko</h2>
+                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">📊 Laporan Keuangan Toko</h2>
                     <p class="text-xs text-slate-500 mt-1">Rekapitulasi pendapatan kotor, ongkos kirim, dan total transaksi masuk.</p>
                 </div>
-                <button onclick="exportFinancialReportExcel()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/20 flex items-center space-x-1.5">
+                <button onclick="exportFinancialReportExcel()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/20 flex items-center justify-center space-x-1.5 whitespace-nowrap">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     <span>Unduh Laporan Excel (.xlsx)</span>
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-6 shadow-lg shadow-emerald-600/20">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-5 sm:p-6 shadow-lg shadow-emerald-600/20">
                     <p class="text-xs uppercase tracking-wider font-semibold opacity-90">Total Pendapatan Kotor</p>
-                    <h3 id="fin-total-revenue" class="text-2xl font-black mt-2">Rp 0</h3>
+                    <h3 id="fin-total-revenue" class="text-xl sm:text-2xl font-black mt-2">Rp 0</h3>
                     <p class="text-[11px] mt-1 opacity-80">Akumulasi seluruh nilai belanja</p>
                 </div>
-                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl p-6 shadow-lg shadow-indigo-600/20">
+                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl p-5 sm:p-6 shadow-lg shadow-indigo-600/20">
                     <p class="text-xs uppercase tracking-wider font-semibold opacity-90">Total Ongkos Kirim</p>
-                    <h3 id="fin-total-ongkir" class="text-2xl font-black mt-2">Rp 0</h3>
+                    <h3 id="fin-total-ongkir" class="text-xl sm:text-2xl font-black mt-2">Rp 0</h3>
                     <p class="text-[11px] mt-1 opacity-80">Akumulasi biaya pengiriman</p>
                 </div>
-                <div class="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-2xl p-6 shadow-lg shadow-violet-600/20">
+                <div class="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-2xl p-5 sm:p-6 shadow-lg shadow-violet-600/20">
                     <p class="text-xs uppercase tracking-wider font-semibold opacity-90">Total Transaksi Masuk</p>
-                    <h3 id="fin-total-orders" class="text-2xl font-black mt-2">0 Pesanan</h3>
-                    <p class="text-[11px] mt-1 opacity-80">Semua status pesanan</p>
+                    <h3 id="fin-total-orders" class="text-xl sm:text-2xl font-black mt-2">0 Pesanan</h3>
+                    <p class="text-[11px] mt-1 opacity-80">Pesanan berstatus Selesai</p>
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+            <div class="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+                <table class="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                         <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th class="py-3 px-4">ID Pesanan & Waktu</th>
-                            <th class="py-3 px-4">Pelanggan</th>
+                            <th class="py-3 px-4">ID Pesanan & Waktu Selesai</th>
                             <th class="py-3 px-4">Subtotal Produk</th>
                             <th class="py-3 px-4">Ongkir</th>
                             <th class="py-3 px-4">Total Belanja</th>
-                            <th class="py-3 px-4">Status Pesanan</th>
+                            <th class="py-3 px-4">Status Keuangan</th>
                         </tr>
                     </thead>
                     <tbody id="admin-financial-table" class="text-xs divide-y divide-slate-100">
-                        <tr><td colspan="6" class="text-center py-6 text-slate-400">Memuat rincian keuangan...</td></tr>
+                        <tr><td colspan="5" class="text-center py-6 text-slate-400">Memuat rincian keuangan...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -207,18 +202,18 @@
 
     <!-- Modal Lightbox -->
     <div id="lightbox-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-        <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="flex items-center justify-center min-h-screen px-4 py-6">
             <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity" onclick="closeLightbox()"></div>
             
-            <div class="relative bg-slate-900 rounded-3xl p-5 shadow-2xl max-w-2xl w-full z-10 flex flex-col items-center border border-slate-800">
+            <div class="relative bg-slate-900 rounded-3xl p-4 sm:p-5 shadow-2xl max-w-2xl w-full z-10 flex flex-col items-center border border-slate-800">
                 <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white/70 hover:text-white bg-slate-800 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm z-20">✕</button>
 
-                <div class="relative w-full h-[60vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black/40">
+                <div class="relative w-full h-[50vh] sm:h-[60vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black/40">
                     <img id="lightbox-img" src="" alt="Zoom Image" class="max-h-full max-w-full object-contain transition-all duration-300 hidden">
                     <video id="lightbox-video" src="" controls class="max-h-full max-w-full object-contain transition-all duration-300 hidden"></video>
 
-                    <button id="lightbox-prev" onclick="changeLightboxImage(-1)" class="absolute left-3 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 backdrop-blur-sm transition">❮</button>
-                    <button id="lightbox-next" onclick="changeLightboxImage(1)" class="absolute right-3 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 backdrop-blur-sm transition">❯</button>
+                    <button id="lightbox-prev" onclick="changeLightboxImage(-1)" class="absolute left-2 sm:left-3 bg-white/10 hover:bg-white/20 text-white rounded-full p-2.5 sm:p-3 backdrop-blur-sm transition">❮</button>
+                    <button id="lightbox-next" onclick="changeLightboxImage(1)" class="absolute right-2 sm:right-3 bg-white/10 hover:bg-white/20 text-white rounded-full p-2.5 sm:p-3 backdrop-blur-sm transition">❯</button>
                 </div>
 
                 <div class="mt-4 flex flex-col sm:flex-row items-center justify-between w-full px-2 gap-2">
@@ -228,7 +223,6 @@
                     </div>
                     <div class="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-4 text-slate-400 text-xs font-semibold">
                         <span id="lightbox-counter" class="bg-slate-800 text-slate-300 px-3 py-1 rounded-xl text-[11px]">Media 1 / 1</span>
-                        <span class="text-[10px] text-slate-500">ESC untuk keluar</span>
                     </div>
                 </div>
             </div>
@@ -237,12 +231,12 @@
 
     <!-- Modal Form Banner / Video -->
     <div id="banner-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-        <div class="flex items-center justify-center min-h-screen px-4 text-center">
+        <div class="flex items-center justify-center min-h-screen px-4 py-6 text-center">
             <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeBannerModal()"></div>
-            <div class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all align-middle max-w-lg w-full p-8 relative z-10">
+            <div class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all align-middle max-w-lg w-full p-5 sm:p-8 relative z-10 my-auto">
                 <div class="flex justify-between items-start mb-4">
-                    <h3 id="banner-modal-title" class="text-lg font-extrabold text-slate-900">Tambah Banner / Video Promo</h3>
-                    <button onclick="closeBannerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
+                    <h3 id="banner-modal-title" class="text-base sm:text-lg font-extrabold text-slate-900">Tambah Banner / Video Promo</h3>
+                    <button onclick="closeBannerModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm p-1">✕</button>
                 </div>
                 <form id="banner-form" onsubmit="saveBanner(event)" class="space-y-4 text-xs">
                     <input type="hidden" id="banner-id">
@@ -265,12 +259,12 @@
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Unggah Foto & Video Banner/Promo 
-                            <span class="text-[10px] text-indigo-600 font-bold block mt-0.5">💡 Unggah Foto/Video atau menghapus salah satu lewat tombol 'X'.</span>
+                            <span class="text-[10px] text-indigo-600 font-bold block mt-0.5">💡 Unggah Foto/Video atau hapus salah satu lewat tombol 'X'.</span>
                         </label>
                         <input type="file" id="banner-media-file" accept="image/*,video/mp4,video/webm,video/ogg,video/mov,video/m4v,video/mkv" multiple onchange="handleBannerFilesSelect(this)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
                         
                         <div class="mt-3">
-                            <span id="banner-preview-count" class="text-[10px] text-slate-500 font-extrabold block mb-1 uppercase tracking-wider">Urutan Media Banner (Geser untuk atur urutan):</span>
+                            <span id="banner-preview-count" class="text-[10px] text-slate-500 font-extrabold block mb-1 uppercase tracking-wider">Urutan Media Banner:</span>
                             <div id="banner-preview-container" class="flex flex-wrap gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-2xl min-h-[90px] items-center">
                                 <span class="text-slate-400 text-xs italic w-full text-center">Belum ada media banner dipilih.</span>
                             </div>
@@ -292,12 +286,12 @@
 
     <!-- Modal Form Tambah/Edit Produk -->
     <div id="product-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-        <div class="flex items-center justify-center min-h-screen px-4 text-center">
+        <div class="flex items-center justify-center min-h-screen px-4 py-6 text-center">
             <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeProductModal()"></div>
-            <div class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all align-middle max-w-lg w-full p-8 relative z-10">
+            <div class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all align-middle max-w-lg w-full p-5 sm:p-8 relative z-10 my-auto">
                 <div class="flex justify-between items-start mb-4">
-                    <h3 id="modal-title" class="text-lg font-extrabold text-slate-900">Tambah Produk Mainan</h3>
-                    <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
+                    <h3 id="modal-title" class="text-base sm:text-lg font-extrabold text-slate-900">Tambah Produk Mainan</h3>
+                    <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm p-1">✕</button>
                 </div>
                 <form id="product-form" onsubmit="saveProduct(event)" class="space-y-4 text-xs">
                     <input type="hidden" id="product-id">
@@ -337,12 +331,12 @@
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">
                             Unggah Foto & Video Produk 
-                            <span class="text-[10px] text-indigo-600 font-bold block mt-0.5">💡 Unggah Foto/video. Anda bisa menambahkan file baru dan drag (geser) pratinjau untuk mengubah urutan.</span>
+                            <span class="text-[10px] text-indigo-600 font-bold block mt-0.5">💡 Unggah Foto/Video. Anda bisa menambahkan file baru dan mengaturnya.</span>
                         </label>
                         <input type="file" id="image-file" name="imageFile" accept="image/*,video/mp4,video/webm,video/ogg,video/mov,video/m4v,video/mkv" multiple onchange="handleProductFilesSelect(this)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
                         
                         <div class="mt-3">
-                            <span id="preview-count" class="text-[10px] text-slate-500 font-extrabold block mb-1 uppercase tracking-wider">Urutan Media (Geser untuk ubah urutan):</span>
+                            <span id="preview-count" class="text-[10px] text-slate-500 font-extrabold block mb-1 uppercase tracking-wider">Urutan Media:</span>
                             <div id="image-preview-container" class="flex flex-wrap gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-2xl min-h-[90px] items-center">
                                 <span class="text-slate-400 text-xs italic w-full text-center">Belum ada media dipilih.</span>
                             </div>
@@ -363,7 +357,7 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white/80 backdrop-blur-md border-t border-slate-200/80 py-12 mt-auto text-center text-xs text-slate-500">
+    <footer class="bg-white/80 backdrop-blur-md border-t border-slate-200/80 py-8 mt-auto text-center text-xs text-slate-500">
         <p>&copy; 2026 CV Semesta Kode Digital.</p>
     </footer>
 
@@ -376,6 +370,7 @@
             } else {
                 fetchAdminProducts();
                 fetchAdminOrders();
+                fetchFinancialReport();
                 fetchAdminBanners();
             }
         });
@@ -391,6 +386,7 @@
         let globalProducts = [];
         let globalOrders = [];
         let globalBanners = [];
+        let globalTransactions = [];
 
         let activeProductMediaList = [];
         let activeBannerMediaList = [];
@@ -440,7 +436,7 @@
                             <td class="py-4 px-4"><span class="bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase">${b.badge || 'Promo'}</span></td>
                             <td class="py-4 px-4 font-bold text-slate-900">${b.title}</td>
                             <td class="py-4 px-4 text-slate-500 truncate max-w-xs">${b.subtitle}</td>
-                            <td class="py-4 px-4 text-center space-x-2">
+                            <td class="py-4 px-4 text-center space-x-2 whitespace-nowrap">
                                 <button onclick='editBanner(${JSON.stringify(b).replace(/'/g, "&#39;")})' class="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-bold px-3 py-1.5 rounded-xl transition">Edit</button>
                                 <button onclick="deleteBanner('${b._id || b.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Hapus</button>
                             </td>
@@ -492,7 +488,7 @@
             const countLabel = document.getElementById('banner-preview-count');
             container.innerHTML = '';
 
-            countLabel.innerText = `Urutan Media Banner (${activeBannerMediaList.length} item - Geser untuk atur urutan):`;
+            countLabel.innerText = `Urutan Media Banner (${activeBannerMediaList.length} item):`;
 
             if (activeBannerMediaList.length === 0) {
                 container.innerHTML = `<span class="text-slate-400 text-xs italic w-full text-center">Belum ada media banner dipilih.</span>`;
@@ -675,31 +671,36 @@
                         ? p.images 
                         : (p.image ? [p.image] : ['https://via.placeholder.com/150?text=No+Image']);
 
-                    const mediaGallery = imagesList.map((mediaUrl, mediaIdx) => {
+                    const displayImages = imagesList.slice(0, 3);
+                    const remainingCount = imagesList.length - 3;
+
+                    const mediaGallery = displayImages.map((mediaUrl, mediaIdx) => {
                         const isVideo = checkIsVideo(mediaUrl);
                         if (isVideo) {
-                            return `<div onclick="openLightbox(${pIndex}, ${mediaIdx})" class="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 transition bg-black"><video src="${mediaUrl}" class="w-full h-full object-cover" muted preload="metadata" playsinline></video><span class="absolute bottom-0 right-0 bg-indigo-600 text-white text-[8px] px-1 font-bold">Vid</span></div>`;
+                            return `<div onclick="openLightbox(${pIndex}, ${mediaIdx})" class="relative w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 transition bg-black"><video src="${mediaUrl}" class="w-full h-full object-cover" muted preload="metadata" playsinline></video><span class="absolute bottom-0 right-0 bg-indigo-600 text-white text-[7px] px-0.5 font-bold">Vid</span></div>`;
                         } else {
-                            return `<img src="${mediaUrl}" alt="${p.name}" onclick="openLightbox(${pIndex}, ${mediaIdx})" class="w-12 h-12 object-cover rounded-xl border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 hover:scale-105 transition">`;
+                            return `<img src="${mediaUrl}" alt="${p.name}" onclick="openLightbox(${pIndex}, ${mediaIdx})" class="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 hover:scale-105 transition">`;
                         }
                     }).join('');
 
-                    const productWeight = p.weight ? `${p.weight} gram` : '500 gram (Default)';
+                    const extraBadge = remainingCount > 0 ? `<div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">+${remainingCount}</div>` : '';
+                    const productWeight = p.weight ? `${p.weight} g` : '500 g';
 
                     tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50/80 transition">
-                            <td class="py-4 px-4">
-                                <div class="flex items-center gap-1.5 overflow-x-auto max-w-[200px] pb-1">
+                        <tr class="hover:bg-slate-50/80 transition align-middle">
+                            <td class="py-4 px-4 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5">
                                     ${mediaGallery}
+                                    ${extraBadge}
                                 </div>
                             </td>
-                            <td class="py-4 px-4 font-bold text-slate-900">${p.name}</td>
-                            <td class="py-4 px-4"><span class="bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase">${p.category || 'Action Figure'}</span></td>
-                            <td class="py-4 px-4 font-semibold text-indigo-600">Rp ${p.price.toLocaleString('id-ID')}</td>
-                            <td class="py-4 px-4 font-semibold">${p.stock} unit</td>
-                            <td class="py-4 px-4 font-medium text-slate-600">${productWeight}</td>
-                            <td class="py-4 px-4 text-slate-500 truncate max-w-xs">${p.description || '-'}</td>
-                            <td class="py-4 px-4 text-center space-x-2">
+                            <td class="py-4 px-4 font-bold text-slate-900 max-w-[220px] truncate" title="${p.name}">${p.name}</td>
+                            <td class="py-4 px-4 whitespace-nowrap"><span class="bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase">${p.category || 'Action Figure'}</span></td>
+                            <td class="py-4 px-4 font-semibold text-indigo-600 whitespace-nowrap">Rp ${p.price.toLocaleString('id-ID')}</td>
+                            <td class="py-4 px-4 font-semibold whitespace-nowrap">${p.stock} unit</td>
+                            <td class="py-4 px-4 font-medium text-slate-600 whitespace-nowrap">${productWeight}</td>
+                            <td class="py-4 px-4 text-slate-500 max-w-[200px] truncate" title="${p.description || '-'}">${p.description || '-'}</td>
+                            <td class="py-4 px-4 text-center space-x-2 whitespace-nowrap">
                                 <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-bold px-3 py-1.5 rounded-xl transition">Edit</button>
                                 <button onclick="deleteProduct('${p._id || p.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Hapus</button>
                             </td>
@@ -799,7 +800,7 @@
             const countLabel = document.getElementById('preview-count');
             container.innerHTML = '';
 
-            countLabel.innerText = `Urutan Media (${activeProductMediaList.length} item - Foto ke-1 adalah Foto Utama):`;
+            countLabel.innerText = `Urutan Media (${activeProductMediaList.length} item - Foto ke-1 adalah Utama):`;
 
             if (activeProductMediaList.length === 0) {
                 container.innerHTML = `<span class="text-slate-400 text-xs italic w-full text-center">Belum ada media dipilih.</span>`;
@@ -975,84 +976,101 @@
                 const result = await response.json();
                 globalOrders = result.data || [];
                 renderOrdersTable(globalOrders);
-                renderFinancialReport(globalOrders);
             } catch (error) {
                 console.error('Gagal mengambil data pesanan:', error);
             }
         }
 
-        function renderFinancialReport(orders) {
-            let totalRevenue = 0;
-            let totalOngkir = 0;
+        // AMBIL LAPORAN KEUANGAN DARI ENDPOINT TERPISAH
+        async function fetchFinancialReport() {
+            try {
+                const response = await fetch('/api/financial-report');
+                const result = await response.json();
+                if (result.success) {
+                    globalTransactions = result.data || [];
+                    renderFinancialReport(result);
+                }
+            } catch (error) {
+                console.error('Gagal mengambil laporan keuangan:', error);
+            }
+        }
+
+        function renderFinancialReport(reportData) {
             const finTableBody = document.getElementById('admin-financial-table');
             finTableBody.innerHTML = '';
-            document.getElementById('fin-total-orders').innerText = `${orders.length} Pesanan`;
 
-            if (orders.length === 0) {
-                finTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada data keuangan.</td></tr>`;
-                document.getElementById('fin-total-revenue').innerText = 'Rp 0';
-                document.getElementById('fin-total-ongkir').innerText = 'Rp 0';
+            document.getElementById('fin-total-revenue').innerText = `Rp ${(reportData.totalPendapatanKotor || 0).toLocaleString('id-ID')}`;
+            document.getElementById('fin-total-ongkir').innerText = `Rp ${(reportData.totalOngkir || 0).toLocaleString('id-ID')}`;
+            document.getElementById('fin-total-orders').innerText = `${reportData.totalTransaksi || 0} Pesanan`;
+
+            const transactions = reportData.data || [];
+
+            if (transactions.length === 0) {
+                finTableBody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">Belum ada data keuangan (pesanan selesai).</td></tr>`;
                 return;
             }
 
-            orders.forEach(order => {
-                const amount = Number(order.totalAmount || order.total || 0);
-                const ongkir = Number(order.ongkir || 0);
-                const subtotal = Number(order.subtotal || (amount - ongkir));
-
-                totalRevenue += amount;
-                totalOngkir += ongkir;
-
-                const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleString('id-ID') : '-';
-                const cName = (order.customer && order.customer.name) || order.customerName || order.name || 'Tanpa Nama';
-                const currentStatus = order.status || 'Belum Diproses';
-
-                let statusBadge = '<span class="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-[10px] font-bold">Belum Diproses</span>';
-                if (currentStatus === 'Diproses oleh Admin') {
-                    statusBadge = '<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-full text-[10px] font-bold">Diproses oleh Admin</span>';
-                } else if (currentStatus === 'Selesai') {
-                    statusBadge = '<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold">Selesai</span>';
-                }
+            transactions.forEach(tx => {
+                const amount = Number(tx.totalAmount || 0);
+                const ongkir = Number(tx.ongkir || 0);
+                const subtotal = Number(tx.subtotal || 0);
+                const completedDate = tx.completedAt ? new Date(tx.completedAt).toLocaleString('id-ID') : '-';
 
                 finTableBody.innerHTML += `
                     <tr class="hover:bg-slate-50/80 transition">
                         <td class="py-3 px-4">
-                            <span class="font-bold text-slate-900">#${order.orderId || (order._id ? order._id.substring(0, 6) : '0000')}</span>
-                            <div class="text-[10px] text-slate-400">${orderDate}</div>
+                            <span class="font-bold text-slate-900">#${tx.orderId}</span>
+                            <div class="text-[10px] text-slate-400">Selesai: ${completedDate}</div>
                         </td>
-                        <td class="py-3 px-4 font-semibold text-slate-700">${cName}</td>
                         <td class="py-3 px-4 font-medium text-slate-600">Rp ${subtotal.toLocaleString('id-ID')}</td>
                         <td class="py-3 px-4 font-medium text-slate-600">Rp ${ongkir.toLocaleString('id-ID')}</td>
                         <td class="py-3 px-4 font-black text-slate-900">Rp ${amount.toLocaleString('id-ID')}</td>
-                        <td class="py-3 px-4">${statusBadge}</td>
+                        <td class="py-3 px-4"><span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-bold">Tercatat Aman</span></td>
                     </tr>
                 `;
             });
-
-            document.getElementById('fin-total-revenue').innerText = `Rp ${totalRevenue.toLocaleString('id-ID')}`;
-            document.getElementById('fin-total-ongkir').innerText = `Rp ${totalOngkir.toLocaleString('id-ID')}`;
         }
 
+        // Render Pesanan Masuk dengan Proteksi Tombol Hapus Jika Selesai
         function renderOrdersTable(globalOrders) {
-            const tbody = document.getElementById('admin-order-table');
+            const container = document.getElementById('admin-orders-container');
             document.getElementById('order-count').innerText = `${globalOrders.length} Pesanan`;
-            tbody.innerHTML = '';
+            container.innerHTML = '';
 
             if (globalOrders.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">Belum ada pesanan masuk.</td></tr>`;
+                container.innerHTML = `
+                    <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
+                        <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">📦</div>
+                        <h3 class="font-bold text-slate-800 text-sm">Belum Ada Pesanan</h3>
+                        <p class="text-xs text-slate-400">Pesanan dari pelanggan yang melakukan checkout akan muncul di sini.</p>
+                    </div>
+                `;
                 return;
             }
 
-            globalOrders.forEach((order) => {
-                const itemsList = (order.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+            globalOrders.slice().reverse().forEach((order) => {
+                const items = order.items || [];
+                let itemsHtml = '';
+                items.forEach(item => {
+                    const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+                    itemsHtml += `
+                        <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                            <span class="font-bold text-slate-800">📦 ${item.name} <span class="text-indigo-600 font-extrabold">(${item.quantity}x)</span></span>
+                            <span class="font-semibold text-slate-600">Rp ${itemTotal.toLocaleString('id-ID')}</span>
+                        </div>
+                    `;
+                });
+
                 let currentStatus = order.status ? order.status.trim() : 'Belum Diproses';
                 const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleString('id-ID') : '-';
+                const orderId = order.orderId || (order._id ? order._id.substring(0, 6) : '0000');
 
                 const custName = (order.customer && order.customer.name) || order.customerName || order.name || 'Tanpa Nama';
                 const custPhone = (order.customer && (order.customer.phone || order.customer.whatsapp)) || order.phone || order.customerPhone || '';
                 const custAddress = (order.customer && order.customer.address) || order.address || '-';
                 const custCourier = (order.customer && order.customer.courier) || order.courier || '-';
                 const paymentMethod = (order.customer && order.customer.payment) || order.paymentMethod || 'Transfer / COD';
+                const mapsUrl = (order.customer && order.customer.mapsUrl) || '';
 
                 const amount = Number(order.totalAmount || order.total || 0);
                 const ongkir = Number(order.ongkir || 0);
@@ -1069,49 +1087,100 @@
                     statusText = "Selesai";
                 }
 
-                // Tombol Konfirmasi WA hanya muncul jika status pesanan sudah Diproses oleh Admin atau Selesai
                 let waButtonHtml = '';
-                if (currentStatus === 'Diproses oleh Admin' || currentStatus === 'Selesai') {
-                    const cleanPhone = custPhone.replace(/\D/g, '').replace(/^0/, '62');
-                    const message = encodeURIComponent(
-                        `Halo Kak *${custName}*, pesanan dengan ID *#${order.orderId || (order._id ? order._id.substring(0, 6) : '0000')}* di *TransGadget* saat ini berstatus: *${currentStatus}*.\n\nTotal Belanja: *Rp ${amount.toLocaleString('id-ID')}*\nKurir: *${custCourier}*\n\nTerima kasih telah berbelanja di TransGadget!`
-                    );
-                    waButtonHtml = `
-                        <a href="https://wa.me/${cleanPhone}?text=${message}" target="_blank" class="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-bold px-2.5 py-1.5 rounded-xl transition inline-flex items-center space-x-1 shadow-sm">
-                            <span>💬 Konfirmasi WA</span>
-                        </a>
+                const cleanPhone = custPhone.replace(/\D/g, '').replace(/^0/, '62');
+                const message = encodeURIComponent(
+                    `Halo Kak *${custName}*, pesanan dengan ID *#${orderId}* di *TransGadget* saat ini berstatus: *${currentStatus}*.\n\nTotal Belanja: *Rp ${amount.toLocaleString('id-ID')}*\nKurir: *${custCourier}*\n\nTerima kasih telah berbelanja di TransGadget!`
+                );
+                waButtonHtml = `
+                    <a href="https://wa.me/${cleanPhone}?text=${message}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-center transition shadow-sm flex items-center justify-center gap-1.5">
+                        <span>💬 Chat WA</span>
+                    </a>
+                `;
+
+                // PROTEKSI TOMBOL HAPUS: Jika status Selesai, tombol hapus dikunci
+                let actionDeleteButton = '';
+                if (currentStatus === 'Selesai') {
+                    actionDeleteButton = `
+                        <span class="bg-slate-100 text-slate-400 font-bold py-2.5 px-3 rounded-xl text-center cursor-not-allowed text-[11px] flex items-center justify-center" title="Pesanan selesai terkunci dan tidak dapat dihapus">
+                            🔒 Terkunci
+                        </span>
+                    `;
+                } else {
+                    actionDeleteButton = `
+                        <button onclick="deleteSingleOrder('${order._id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 px-3 rounded-xl transition">
+                            🗑️ Hapus
+                        </button>
                     `;
                 }
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="py-4 px-4">
-                            <span class="font-bold text-slate-900">#${order.orderId || (order._id ? order._id.substring(0, 6) : '0000')}</span>
-                            <div class="text-[10px] text-slate-400 mt-0.5">${orderDate}</div>
-                        </td>
-                        <td class="py-4 px-4 text-slate-700">
-                            <strong>👤 ${custName}</strong><br>
-                            📞 ${custPhone || '-'}<br>
-                            📍 Alamat: ${custAddress}<br>
-                            🚚 Kurir: ${custCourier}<br>
-                            💳 Pembayaran: ${paymentMethod}
-                        </td>
-                        <td class="py-4 px-4 text-slate-600 max-w-xs truncate">${itemsList || '-'}</td>
-                        <td class="py-4 px-4 text-slate-600">
-                            Subtotal: Rp ${subtotal.toLocaleString('id-ID')}<br>
-                            Ongkir: Rp ${ongkir.toLocaleString('id-ID')}
-                        </td>
-                        <td class="py-4 px-4 font-black text-slate-900">Rp ${amount.toLocaleString('id-ID')}</td>
-                        <td class="py-4 px-4">
-                            <button onclick='cycleOrderStatus("${order._id}", "${currentStatus}")' class="${statusBtnClass} text-[10px] font-bold px-3 py-1.5 rounded-full transition shadow-sm cursor-pointer">
-                                ${statusText} 🔄
-                            </button>
-                        </td>
-                        <td class="py-4 px-4 text-center space-x-2 whitespace-nowrap">
-                            ${waButtonHtml}
-                            <button onclick="deleteSingleOrder('${order._id}')" class="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold px-2.5 py-1.5 rounded-xl transition">Hapus</button>
-                        </td>
-                    </tr>
+                container.innerHTML += `
+                    <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition space-y-5">
+                        
+                        <!-- Header Card: ID & Tanggal & Status -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="bg-slate-900 text-white font-black text-xs px-3 py-1.5 rounded-xl">#${orderId}</span>
+                                <span class="text-xs font-semibold text-slate-400">🕒 ${orderDate}</span>
+                            </div>
+                            <div>
+                                <button onclick='cycleOrderStatus("${order._id}", "${currentStatus}")' class="${statusBtnClass} text-[10px] font-bold px-3 py-1 rounded-full transition shadow-sm cursor-pointer">
+                                    ${statusText} 🔄
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Grid Konten: Info Customer | Daftar Item | Rincian Tagihan & Aksi -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+                            
+                            <!-- Kolom 1: Info Customer & Alamat -->
+                            <div class="space-y-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
+                                <h4 class="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] text-indigo-600 mb-1">👤 Informasi Pembeli</h4>
+                                <p class="font-bold text-slate-800 text-sm">${custName}</p>
+                                <p class="text-slate-600 font-medium">📞 ${custPhone || '-'}</p>
+                                <p class="text-slate-500 leading-relaxed pt-1">📍 ${custAddress}</p>
+                                <div class="pt-2 border-t border-slate-200/60 flex flex-col gap-1 text-[11px]">
+                                    <span class="text-slate-600">🚚 Kurir: <b class="text-slate-800">${custCourier}</b></span>
+                                    <span class="text-slate-600">💳 Pembayaran: <b class="text-slate-800">${paymentMethod}</b></span>
+                                    ${mapsUrl && mapsUrl !== '-' ? `<a href="${mapsUrl}" target="_blank" class="text-indigo-600 font-bold hover:underline mt-0.5">🗺️ Buka Titik Google Maps →</a>` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Kolom 2: Daftar Item Produk -->
+                            <div class="space-y-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
+                                <h4 class="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] text-indigo-600 mb-1">🛍️ Daftar Item</h4>
+                                <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                    ${itemsHtml || '<span class="text-slate-400 italic">Tidak ada item</span>'}
+                                </div>
+                            </div>
+
+                            <!-- Kolom 3: Rincian Tagihan & Aksi -->
+                            <div class="flex flex-col justify-between bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/60">
+                                <div class="space-y-1.5">
+                                    <h4 class="font-extrabold text-indigo-900 uppercase tracking-wider text-[11px] mb-2">💰 Rincian Tagihan</h4>
+                                    <div class="flex justify-between text-slate-600">
+                                        <span>Subtotal Produk:</span>
+                                        <span class="font-bold text-slate-800">Rp ${subtotal.toLocaleString('id-ID')}</span>
+                                    </div>
+                                    <div class="flex justify-between text-slate-600">
+                                        <span>Ongkos Kirim:</span>
+                                        <span class="font-bold text-slate-800">Rp ${ongkir.toLocaleString('id-ID')}</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-indigo-200/60 text-sm font-black text-indigo-600">
+                                        <span>Total Tagihan:</span>
+                                        <span>Rp ${amount.toLocaleString('id-ID')}</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-2 pt-4">
+                                    ${waButtonHtml}
+                                    ${actionDeleteButton}
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
                 `;
             });
         }
@@ -1119,7 +1188,6 @@
         async function cycleOrderStatus(orderMongoId, currentStatus) {
             let nextStatus = 'Belum Diproses';
             
-            // Alur maju linear (tidak berputar kembali ke awal)
             if (currentStatus === 'Belum Diproses') {
                 nextStatus = 'Diproses oleh Admin';
             } else if (currentStatus === 'Diproses oleh Admin') {
@@ -1134,41 +1202,48 @@
                 body: JSON.stringify({ status: nextStatus })
             });
             fetchAdminOrders();
+            fetchFinancialReport();
         }
 
         async function deleteSingleOrder(orderMongoId) {
             if (!confirm('Hapus pesanan ini?')) return;
             await fetch(`/api/orders/${orderMongoId}`, { method: 'DELETE' });
             fetchAdminOrders();
+            fetchFinancialReport();
         }
 
-        function exportOrdersToCSV() {
-            if (globalOrders.length === 0) return alert('Tidak ada data.');
-            let csv = "data:text/csv;charset=utf-8,ID,Waktu,Nama,Subtotal,Ongkir,Total,Status\n";
-            globalOrders.forEach(o => {
-                const amount = Number(o.totalAmount || o.total || 0);
-                const ongkir = Number(o.ongkir || 0);
-                const subtotal = Number(o.subtotal || (amount - ongkir));
-                csv += `"${o.orderId || o._id}","${o.createdAt}","${o.customer?.name || ''}",${subtotal},${ongkir},${amount},"${o.status}"\n`;
-            });
-            const link = document.createElement("a");
-            link.href = encodeURI(csv);
-            link.download = "laporan_pesanan.csv";
-            link.click();
-        }
-
-        function exportFinancialReportExcel() {
-            if (globalOrders.length === 0) return alert('Tidak ada data.');
+        // EKSPOR LAPORAN PESANAN MENGGUNAKAN EXCEL (.xlsx)
+        function exportOrdersToExcel() {
+            if (globalOrders.length === 0) return alert('Tidak ada data pesanan.');
             const data = globalOrders.map(o => {
                 const amount = Number(o.totalAmount || o.total || 0);
                 const ongkir = Number(o.ongkir || 0);
                 const subtotal = Number(o.subtotal || (amount - ongkir));
                 return {
                     "ID Pesanan": o.orderId || o._id,
+                    "Waktu Pesan": o.createdAt,
+                    "Nama Pelanggan": o.customer?.name || o.customerName || o.name || '',
                     "Subtotal Produk (Rp)": subtotal,
                     "Ongkos Kirim (Rp)": ongkir,
                     "Total Belanja (Rp)": amount,
-                    "Status": o.status
+                    "Status Pesanan": o.status
+                };
+            });
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Pesanan Masuk");
+            XLSX.writeFile(wb, "laporan_pesanan.xlsx");
+        }
+
+        function exportFinancialReportExcel() {
+            if (globalTransactions.length === 0) return alert('Tidak ada data keuangan.');
+            const data = globalTransactions.map(tx => {
+                return {
+                    "ID Pesanan": tx.orderId,
+                    "Subtotal Produk (Rp)": tx.subtotal,
+                    "Ongkos Kirim (Rp)": tx.ongkir,
+                    "Total Belanja (Rp)": tx.totalAmount,
+                    "Waktu Selesai": tx.completedAt
                 };
             });
             const ws = XLSX.utils.json_to_sheet(data);
