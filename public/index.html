@@ -68,7 +68,7 @@
         <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
                 <div>
-                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900"> Manajemen Multi-Video & Banner Promosi</h2>
+                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">🎬 Manajemen Multi-Video & Banner Promosi</h2>
                     <p class="text-xs text-slate-500 mt-1">Unggah beberapa video promosi atau banner foto serta atur urutannya.</p>
                 </div>
                 <button onclick="openBannerModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25 whitespace-nowrap">
@@ -1031,7 +1031,7 @@
             });
         }
 
-        // Render Pesanan Masuk dengan Proteksi Tombol Hapus Jika Selesai
+        // Render Pesanan Masuk dengan Urutan Terbaru di Atas
         function renderOrdersTable(globalOrders) {
             const container = document.getElementById('admin-orders-container');
             document.getElementById('order-count').innerText = `${globalOrders.length} Pesanan`;
@@ -1048,15 +1048,20 @@
                 return;
             }
 
-            globalOrders.slice().reverse().forEach((order) => {
+            // Urutkan dari tanggal terbaru ke terlama (Pesanan baru di atas)
+            const sortedOrders = [...globalOrders].sort((a, b) => {
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+            });
+
+            sortedOrders.forEach((order) => {
                 const items = order.items || [];
                 let itemsHtml = '';
                 items.forEach(item => {
                     const itemTotal = (Number(item.price) || 0) * (Number(item.quantity) || 1);
                     itemsHtml += `
-                        <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
-                            <span class="font-bold text-slate-800">📦 ${item.name} <span class="text-indigo-600 font-extrabold">(${item.quantity}x)</span></span>
-                            <span class="font-semibold text-slate-600">Rp ${itemTotal.toLocaleString('id-ID')}</span>
+                        <div class="flex flex-col bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs gap-1.5">
+                            <span class="font-bold text-slate-800 leading-snug">📦 ${item.name} <span class="text-indigo-600 font-extrabold">(${item.quantity}x)</span></span>
+                            <span class="font-semibold text-slate-600 text-right">Rp ${itemTotal.toLocaleString('id-ID')}</span>
                         </div>
                     `;
                 });
