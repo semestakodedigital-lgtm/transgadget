@@ -10,6 +10,10 @@
     <!-- Leaflet CSS & JS (OpenStreetMap Engine - 100% Gratis Tanpa API Key) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Socket.IO Client Library -->
+    <script src="/socket.io/socket.io.js"></script>
+
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .transformer-bg {
@@ -23,13 +27,20 @@
             width: 100% !important;
             height: 180px !important;
         }
+        /* Custom scrollbar untuk chat */
+        #chat-messages::-webkit-scrollbar { width: 4px; }
+        #chat-messages::-webkit-scrollbar-track { background: transparent; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
 <body class="transformer-bg text-slate-900 min-h-screen flex flex-col selection:bg-indigo-600 selection:text-white">
 
+    <!-- Audio Elemen untuk Notifikasi Pesan Masuk -->
+    <audio id="chat-notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
     <!-- Top Announcement Bar -->
     <div class="bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-900 text-white text-[11px] font-bold py-2.5 px-4 tracking-wider uppercase text-center shadow-sm">
-        🧸 Real-Time Shipping Rates • 100% Original Collectible Toys & Board Games
+        🧸 Instant & JNE Express Shipping • 100% Original Collectible Toys & Board Games
     </div>
 
     <!-- Main Header -->
@@ -49,7 +60,7 @@
 
             <!-- WhatsApp Button & Cart Trigger -->
             <div class="flex items-center space-x-3">
-                <a href="https://wa.me/6289633973285?text=Halo%20Admin%20TransGadget,%20saya%20ingin%20bertanya%20mengenai%20produk%20mainan." target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center space-x-2 shadow-md shadow-emerald-600/10" title="Hubungi WhatsApp Admin">
+                <a href="https://wa.me/628119238168?text=Halo%20Admin%20TransGadget,%20saya%20ingin%20bertanya%20mengenai%20produk%20mainan." target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center space-x-2 shadow-md shadow-emerald-600/10" title="Hubungi WhatsApp Admin">
                     <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
                         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                     </svg>
@@ -80,20 +91,33 @@
     <!-- Main Content Layout -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
         
-        <!-- KOMPONEN BANNER / VIDEO DINAMIS -->
-        <div class="mb-8">
-            <div id="dynamic-banner-container" class="relative w-full h-48 sm:h-64 md:h-80 rounded-3xl overflow-hidden shadow-xl bg-slate-900 flex items-center justify-center transition-all duration-500">
+        <!-- KOMPONEN BANNER GAYA FOOM (FULL-WIDTH SLIDER DENGAN KONTROL NAVIGASI BAWAH) -->
+        <div class="mb-10">
+            <div id="dynamic-banner-container" class="relative w-full h-[300px] sm:h-[420px] md:h-[500px] lg:h-[540px] rounded-3xl overflow-hidden shadow-2xl bg-slate-950 flex items-center justify-center transition-all duration-500">
                 <img id="dynamic-banner-img" src="" alt="Banner Promosi" class="w-full h-full object-cover transition-all duration-700 hidden">
                 <video id="dynamic-banner-video" src="" class="w-full h-full object-cover transition-all duration-700 hidden" autoplay muted loop playsinline></video>
                 
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent flex flex-col justify-end p-6 sm:p-8">
-                    <span id="banner-badge" class="bg-indigo-600 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider w-max mb-2">Video Spotlight</span>
-                    <h2 id="banner-title" class="text-white text-lg sm:text-2xl font-black tracking-tight">Video Showcase Koleksi Mainan</h2>
-                    <p id="banner-subtitle" class="text-slate-200 text-xs sm:text-sm mt-1 line-clamp-2">Saksikan review singkat dan keseruan action figure eksklusif kami.</p>
+                <!-- Overlay Gradien & Konten Teks -->
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent flex flex-col justify-end p-6 sm:p-12">
+                    <span id="banner-badge" class="bg-rose-600 text-white text-[10px] sm:text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest w-max mb-2 shadow-md">Promo Spesial</span>
+                    <h2 id="banner-title" class="text-white text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight drop-shadow-md">Serunya Bersatu</h2>
+                    <p id="banner-subtitle" class="text-slate-200 text-xs sm:text-sm md:text-base mt-2 line-clamp-2 max-w-2xl font-medium drop-shadow">Temukan koleksi action figure eksklusif dan board game terbaik minggu ini.</p>
+                    
+                    <!-- Tombol 'Order Now' ala FOOM -->
+                    <div class="mt-5">
+                        <button onclick="scrollToProducts()" class="bg-white/90 hover:bg-white text-slate-950 font-extrabold text-xs sm:text-sm px-7 py-3 rounded-full shadow-xl transition transform hover:scale-105 uppercase tracking-wider backdrop-blur-sm">
+                            Order Now
+                        </button>
+                    </div>
                 </div>
 
-                <button onclick="changeBannerSlide(-1)" id="banner-prev-btn" class="absolute left-4 bg-white/20 hover:bg-white/40 text-white p-2.5 rounded-full backdrop-blur-sm transition hidden">❮</button>
-                <button onclick="changeBannerSlide(1)" id="banner-next-btn" class="absolute right-4 bg-white/20 hover:bg-white/40 text-white p-2.5 rounded-full backdrop-blur-sm transition hidden">❯</button>
+                <!-- Kontrol Navigasi & Indikator Slide di Bagian Bawah Tengah (Gaya FOOM) -->
+                <div class="absolute bottom-4 right-4 sm:right-12 z-20 flex items-center space-x-2 bg-slate-950/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                    <button onclick="changeBannerSlide(-1)" id="banner-prev-btn" class="text-white/80 hover:text-white px-1 text-xs font-bold transition">❮</button>
+                    <span id="banner-counter" class="text-white text-xs font-bold tracking-widest px-2">1 / 1</span>
+                    <button onclick="changeBannerSlide(1)" id="banner-next-btn" class="text-white/80 hover:text-white px-1 text-xs font-bold transition">❯</button>
+                    <button onclick="toggleBannerPlayPause()" id="banner-pause-btn" class="text-white/80 hover:text-white px-1.5 text-xs font-bold transition border-l border-white/20 ml-1">⏸</button>
+                </div>
             </div>
         </div>
 
@@ -109,7 +133,7 @@
         <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
     </main>
 
-    <!-- Product Detail Modal (Updated Layout: 2 Kolom - Foto di Kiri, Detail di Kanan) -->
+    <!-- Product Detail Modal -->
     <div id="detail-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
             <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity" onclick="toggleDetailModal(false)"></div>
@@ -117,10 +141,7 @@
             <div class="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-4xl w-full z-10 p-6 sm:p-8 border border-slate-100">
                 <button onclick="toggleDetailModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm z-20 transition">✕</button>
 
-                <!-- Flex Container 2 Kolom -->
                 <div class="flex flex-col md:flex-row gap-6 items-start">
-                    
-                    <!-- Kolom Kiri: Foto / Slider Produk -->
                     <div class="w-full md:w-1/2 flex flex-col space-y-3">
                         <div class="relative w-full aspect-square bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center">
                             <img id="detail-slider-img" src="" alt="Foto Produk" class="w-full h-full object-contain transition-all duration-300 hidden">
@@ -134,13 +155,12 @@
                         <div id="detail-thumbnails" class="flex gap-2 overflow-x-auto pb-1"></div>
                     </div>
 
-                    <!-- Kolom Kanan: Detail & Aksi Pembelian -->
                     <div class="w-full md:w-1/2 flex flex-col space-y-3">
                         <div class="flex justify-between items-start">
                             <span id="modal-product-status" class="text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest"></span>
                             <span id="modal-product-stock" class="text-xs font-semibold text-slate-500"></span>
                         </div>
-                         
+                        
                         <h2 id="modal-product-name" class="text-xl font-extrabold text-slate-900 tracking-tight"></h2>
                         <div class="flex items-center justify-between">
                             <div id="modal-product-price" class="text-2xl font-black text-indigo-600"></div>
@@ -170,7 +190,6 @@
                             Masukkan ke Keranjang
                         </button>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -192,13 +211,25 @@
                         <div id="cart-items-container" class="space-y-3"></div>
                     </div>
 
-                    <!-- Form Pengiriman & Cek Ongkir -->
+                    <!-- Form Pengiriman & Opsi Kurir (Disusun Urut & Rapi) -->
                     <div id="checkout-form-container" class="pt-4 border-t border-slate-200 space-y-4 text-xs">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
-                            Pengantaran
+                            Pengiriman & Kurir
                         </h3>
 
-                        <!-- Negara/Wilayah -->
+                        <!-- 1. Pilihan Metode Pengiriman -->
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Metode Pengiriman</label>
+                            <select id="shipping-type-selector" onchange="switchShippingType()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 font-bold">
+                                <option value="jne" selected>JNE Express</option>
+                                <option value="instant">Kurir Instan (Gojek / Grab)</option>
+                            </select>
+                            <p id="shipping-type-help" class="mt-1 text-[10px] text-slate-500">
+                                Pilih metode pengiriman terlebih dahulu, kemudian cek tarif untuk melihat layanan yang tersedia.
+                            </p>
+                        </div>
+
+                        <!-- 2. Negara/Wilayah -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Negara/Wilayah</label>
                             <select id="cust-country" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
@@ -206,7 +237,7 @@
                             </select>
                         </div>
 
-                        <!-- Nama depan & Nama belakang -->
+                        <!-- 3. Nama depan & Nama belakang -->
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-bold text-slate-700 mb-1">Nama depan</label>
@@ -218,25 +249,25 @@
                             </div>
                         </div>
 
-                        <!-- Alamat -->
+                        <!-- 4. Alamat -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Alamat</label>
                             <input type="text" id="cust-address" onchange="autoSyncAddressToMap()" required placeholder="Alamat jalan, nomor rumah, RT/RW" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
 
-                        <!-- Kecamatan -->
+                        <!-- 5. Kecamatan -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Kecamatan</label>
                             <input type="text" id="cust-district" onchange="autoSyncAddressToMap()" required placeholder="Kecamatan" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
 
-                        <!-- Kota (Manual Input Kosong Murni) -->
+                        <!-- 6. Kota -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Kota</label>
-                            <input type="text" id="cust-city" value="" onchange="calculateOngkir(); autoSyncAddressToMap();" required placeholder="Ketik nama kota..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                            <input type="text" id="cust-city" value="" onchange="autoSyncAddressToMap()" required placeholder="Ketik nama kota..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
                         </div>
 
-                        <!-- Provinsi & Kode pos -->
+                        <!-- 7. Provinsi & Kode pos -->
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-bold text-slate-700 mb-1">Provinsi</label>
@@ -288,16 +319,16 @@
                             </div>
                         </div>
 
-                        <!-- Telepon -->
+                        <!-- 8. Telepon -->
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Telepon</label>
                             <input type="tel" id="cust-phone" required placeholder="Nomor Telepon / WhatsApp" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
 
-                        <!-- Modul Maps Interaktif -->
-                        <div class="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-3.5 space-y-2">
+                        <!-- 9. Modul Maps Interaktif -->
+                        <div id="instant-map-section" class="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-3.5 space-y-2">
                             <div class="flex justify-between items-center">
-                                <label class="block font-bold text-indigo-900 text-[11px] uppercase tracking-wider">🗺️ Titik Presisi Maps (Otomatis)</label>
+                                <label class="block font-bold text-indigo-900 text-[11px] uppercase tracking-wider">🗺️ Titik Presisi Maps (Gojek/Grab)</label>
                                 <button type="button" onclick="getCurrentLocation()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition shadow-sm">
                                     📍 Lacak GPS Saya
                                 </button>
@@ -313,22 +344,27 @@
                             <div id="map" class="w-full rounded-xl border border-indigo-200/80 shadow-inner overflow-hidden"></div>
                             <input type="hidden" id="cust-lat" value="-6.115500">
                             <input type="hidden" id="cust-lng" value="106.744100">
-                            <p id="map-status" class="text-[10px] text-slate-600 font-medium leading-tight">Geser pin merah ke titik lokasi yang pas.</p>
+                            <p id="map-status" class="text-[10px] text-slate-600 font-medium leading-tight">Geser pin merah ke titik lokasi pengantaran.</p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Ekspedisi</label>
-                                <select id="cust-courier" onchange="calculateOngkir()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
-                                    <option value="jne">JNE Express</option>
-                                    <option value="tiki">TIKI</option>
-                                    <option value="pos">POS Indonesia</option>
-                                </select>
+                        <!-- 10. Cek Tarif dan Pilihan Layanan -->
+                        <div class="pt-2 space-y-2">
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p class="font-bold text-slate-800">Tarif Pengiriman</p>
+                                        <p class="text-[10px] text-slate-500">Tarif dihitung berdasarkan tujuan dan berat pesanan.</p>
+                                    </div>
+                                    <button type="button" onclick="triggerRateCalculation()" class="shrink-0 bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-2 rounded-xl text-[10px] transition shadow-sm">
+                                        🔍 Cek Tarif
+                                    </button>
+                                </div>
                             </div>
+
                             <div>
-                                <label class="block font-bold text-slate-700 mb-1">Layanan Paket</label>
-                                <select id="cust-service" onchange="updateGrandTotal()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
-                                    <option value="">-- Ketik Kota Dulu --</option>
+                                <label id="service-label" class="block font-bold text-slate-700 mb-1">Pilih Layanan JNE</label>
+                                <select id="cust-service" onchange="updateGrandTotal()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-500">
+                                    <option value="">-- Klik "Cek Tarif" untuk melihat layanan --</option>
                                 </select>
                             </div>
                         </div>
@@ -357,7 +393,7 @@
         </div>
     </div>
 
-    <!-- Modal Instruksi Pembayaran (Fallback jika Xendit Error) -->
+    <!-- Modal Instruksi Pembayaran -->
     <div id="payment-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
             <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"></div>
@@ -377,14 +413,7 @@
                         <span class="text-slate-500 font-semibold">Total Tagihan:</span>
                         <span id="pay-total-amount" class="text-base font-black text-indigo-600">Rp 0</span>
                     </div>
-
-                    <div id="payment-details-content" class="space-y-2 pt-1">
-                        <!-- Konten akan diisi dari Javascript -->
-                    </div>
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-left text-[11px] text-amber-800 leading-relaxed">
-                    💡 <b>Langkah Selanjutnya:</b> Klik tombol di bawah untuk meminta link pembayaran kepada WA Admin.
+                    <div id="payment-details-content" class="space-y-2 pt-1"></div>
                 </div>
 
                 <div class="space-y-2.5 pt-2">
@@ -399,76 +428,94 @@
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- KOMPONEN LIVE CHAT MELAYANG -->
+    <div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <!-- Jendela Chat -->
+        <div id="chat-window" class="hidden w-72 sm:w-80 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-4 border border-slate-200 transition-all duration-300">
+            <!-- Header Chat -->
+            <div class="bg-indigo-600 px-4 py-3 flex justify-between items-center text-white">
+                <span class="font-bold text-sm flex items-center gap-2 tracking-wide">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2h-2.586l-2.707 2.707a1 1 0 01-1.414 0L6.586 15H4a2 2 0 01-2-2V5z"></path></svg>
+                    Live Chat Admin
+                </span>
+                <button onclick="toggleChat()" class="text-white hover:text-indigo-200 transition">✕</button>
+            </div>
+            
+            <!-- Ruang Pesan -->
+            <div id="chat-messages" class="h-64 sm:h-72 overflow-y-auto p-4 space-y-3 bg-slate-50 text-xs flex flex-col scroll-smooth">
+                <!-- Chat akan dimuat di sini oleh JavaScript -->
+            </div>
+            
+            <!-- Form Input Pesan -->
+            <div class="p-3 border-t border-slate-200 bg-white flex gap-2">
+                <input type="text" id="chat-input" placeholder="Tanya admin di sini..." class="flex-1 bg-slate-100 border-none rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50" onkeypress="handleChatKeyPress(event)">
+                <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20">Kirim</button>
+            </div>
+        </div>
+
+        <!-- Tombol Pemicu Chat dengan Badge Indikator Notifikasi -->
+        <button onclick="toggleChat()" class="bg-slate-900 hover:bg-indigo-600 text-white rounded-full p-4 shadow-xl shadow-slate-900/20 transition-all transform hover:scale-105 flex items-center justify-center relative group">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            <!-- Badge Notifikasi Hitung Pesan Belum Dibaca -->
+            <span id="chat-badge" class="hidden absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">0</span>
+            <span class="absolute right-14 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Tanya Admin</span>
+        </button>
+    </div>
+
+    <!-- Footer dengan Sosial Media & Marketplace (Shopee, Tokopedia, TikTok Shop) -->
     <footer class="bg-white/90 backdrop-blur-md border-t border-slate-200/80 pt-12 pb-8 mt-auto text-slate-600 text-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div class="space-y-3">
-                <div class="flex items-center space-x-2">
-                    <span class="text-base font-extrabold text-slate-900 tracking-tight">TransGadget Indonesia</span>
-                </div>
-                <p class="text-slate-500 leading-relaxed">
-                    Official Toy Collector Space terlengkap dan terpercaya di Indonesia. Menyediakan action figure original, gundam, board game, dan mainan edukasi pilihan.
-                </p>
+                <span class="text-base font-extrabold text-slate-900 tracking-tight">TransGadget Indonesia</span>
+                <p class="text-slate-500 leading-relaxed">Official Toy Collector Space terlengkap dengan pilihan Kurir Instan dan JNE Express.</p>
             </div>
-
             <div class="space-y-3">
                 <h4 class="font-bold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-200 pb-2">📍 Alamat Toko</h4>
-                <p class="text-slate-500 leading-relaxed">
-                    Ruko Elang Laut Boulevard Blok C No. 42,<br>
-                    Pantai Indah Kapuk (PIK), Penjaringan,<br>
-                    Jakarta Utara, DKI Jakarta 14460
-                </p>
-                <p class="text-slate-400 text-[11px]">🕒 Buka Setiap Hari: 10.00 - 21.00 WIB</p>
+                <p class="text-slate-500 leading-relaxed">Ruko Elang Laut Boulevard Blok C No. 42, PIK, Jakarta Utara</p>
             </div>
-
             <div class="space-y-3">
-                <h4 class="font-bold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-200 pb-2">📞 Layanan & Kontak</h4>
-                <div class="space-y-2 text-slate-500">
-                    <p class="flex items-center gap-2">
-                        <span>✉️ Email:</span> 
-                        <span class="font-medium text-slate-700">support@transgadget.id</span>
-                    </p>
-                </div>
+                <h4 class="font-bold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-200 pb-2">📞 Layanan</h4>
+                <p class="text-slate-500">support@transgadget.id</p>
             </div>
-
             <div class="space-y-3">
-                <h4 class="font-bold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-200 pb-2">🌐 Ikuti Sosial Media</h4>
-                <p class="text-slate-500">Dapatkan update koleksi terbaru, giveaway, dan unboxing mainan di platform kami:</p>
-                <div class="flex flex-wrap gap-2.5 pt-1">
-                    
-                    <!-- TikTok -->
-                    <a href="https://www.tiktok.com/@transgadgetindonesia" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm text-xs">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
-                        <span>TikTok</span>
+                <h4 class="font-bold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-200 pb-2">🌐 Sosial Media & Toko</h4>
+                <p class="text-slate-500 mb-2">Ikuti update & belanja di:</p>
+                <div class="flex flex-col space-y-2">
+                    <!-- Instagram -->
+                    <a href="https://instagram.com/transgadget.indonesia" target="_blank" class="flex items-center space-x-2 text-slate-600 hover:text-pink-600 font-semibold transition" title="Instagram TransGadget">
+                        <svg class="w-4 h-4 fill-pink-600" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                        <span>Instagram</span>
                     </a>
 
-                    <!-- Shopee -->
-                    <a href="https://shopee.co.id/transgadget" target="_blank" class="bg-[#EE4D2D] hover:bg-orange-600 text-white font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm text-xs">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12zm-7-8c-1.66 0-3-1.34-3-3H7c0 2.76 2.24 5 5 5s5-2.24 5-5h-2c0 1.66-1.34 3-3 3z"/></svg>
+                    <!-- TikTok Shop -->
+                    <a href="https://www.tiktok.com/@transgadgetindonesia" target="_blank" class="flex items-center space-x-2 text-slate-600 hover:text-slate-900 font-semibold transition" title="TikTok Shop TransGadget">
+                        <svg class="w-4 h-4 fill-slate-900" viewBox="0 0 24 24">
+                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                        </svg>
+                        <span>TikTok Shop</span>
+                    </a>
+
+                    <!-- Shopee (Ikon Tas Belanja Orange dengan Huruf 'S') -->
+                    <a href="https://shopee.co.id/transgadgetindonesia" target="_blank" class="flex items-center space-x-2 text-slate-600 hover:text-orange-600 font-semibold transition" title="Shopee TransGadget">
+                        <svg class="w-4 h-4" viewBox="0 0 512 512">
+                            <circle cx="256" cy="256" r="256" fill="#ee4d2d"/>
+                            <path d="M380 160h-52c0-44.1-35.9-80-80-80s-80 35.9-80 80H132c-17.7 0-32 14.3-32 32v224c0 17.7 14.3 32 32 32h248c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-124-48c26.5 0 48 21.5 48 48H208c0-26.5 21.5-48 48-48zm116 288H140V200h36v32c0 8.8 7.2 16 16 16s16-7.2 16-16v-32h80v32c0 8.8 7.2 16 16 16s16-7.2 16-16v-32h36v200z" fill="#ffffff"/>
+                        </svg>
                         <span>Shopee</span>
                     </a>
 
-                    <!-- Tokopedia -->
-                    <a href="https://tk.tokopedia.com/ZS4VkKKjb/" target="_blank" class="bg-[#00AA5B] hover:bg-emerald-600 text-white font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm text-xs">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <!-- Tokopedia (Ikon Burung Hantu Hijau Tokopedia) -->
+                    <a href="https://tokopedia.com/transgadgetindonesia" target="_blank" class="flex items-center space-x-2 text-slate-600 hover:text-emerald-600 font-semibold transition" title="Tokopedia TransGadget">
+                        <svg class="w-4 h-4" viewBox="0 0 512 512">
+                            <path d="M416 96H96c-35.3 0-64 28.7-64 64v256c0 35.3 28.7 64 64 64h320c35.3 0 64-28.7 64-64V160c0-35.3-28.7-64-64-64zM224 48c0-13.3 10.7-24 24-24s24 10.7 24 24v24h-48V48zm122.9 231.1l-60.8 53.2c-12.8 11.2-31.5 11.2-44.3 0l-60.8-53.2c-18.7-16.4-20.4-44.6-3.9-63.3 16.4-18.7 44.6-20.4 63.3-3.9l32.2 28.2 32.2-28.2c18.7-16.4 46.9-14.7 63.3 3.9 16.5 18.7 14.8 46.9-3.9 63.3z" fill="#00aa5b"/>
+                        </svg>
                         <span>Tokopedia</span>
-                    </a>
-
-                    <!-- Toco.id -->
-                    <a href="https://toco.id/link/5vX1uasgqoxPKSP1tZhiPf" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm text-xs">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                        <span>Toco.id</span>
-                    </a>
-
-                    <!-- Instagram -->
-                    <a href="https://instagram.com/transgadget.indonesia" target="_blank" class="bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 hover:opacity-90 text-white font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm text-xs">
-                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                        <span>Instagram</span>
                     </a>
                 </div>
             </div>
         </div>
-
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 border-t border-slate-200/60 text-center text-slate-400">
             <p>&copy; 2026 CV Semesta Kode Digital.</p>
         </div>
@@ -476,6 +523,107 @@
 
     <!-- Script JavaScript -->
     <script>
+        // ==========================================
+        // KONFIGURASI LIVE CHAT SOCKET.IO & NOTIFIKASI
+        // ==========================================
+        const socket = io(); // Menghubungkan ke server Socket.io
+        const chatWindow = document.getElementById('chat-window');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatBadge = document.getElementById('chat-badge');
+        
+        let unreadChatCount = 0;
+        let mySenderId = localStorage.getItem('tg_chat_id');
+        if (!mySenderId) {
+            mySenderId = 'Customer_' + Math.floor(Math.random() * 10000);
+            localStorage.setItem('tg_chat_id', mySenderId);
+        }
+
+        // Buka / Tutup Jendela Chat
+        function toggleChat() {
+            chatWindow.classList.toggle('hidden');
+            if (!chatWindow.classList.contains('hidden')) {
+                unreadChatCount = 0;
+                chatBadge.classList.add('hidden');
+                chatBadge.innerText = '0';
+                document.title = 'TransGadget.Indonesia';
+
+                chatInput.focus();
+                scrollToBottomChat();
+            }
+        }
+
+        function scrollToBottomChat() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function renderMessage(msg) {
+            const isMe = msg.sender === mySenderId;
+            const isAdmin = msg.sender === 'Admin' || msg.sender.toLowerCase().includes('admin');
+            
+            const alignParent = isMe ? 'items-end' : 'items-start';
+            const bubbleColor = isMe ? 'bg-indigo-600 text-white rounded-br-sm' : (isAdmin ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-bl-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm');
+            const senderName = isMe ? 'Anda' : (isAdmin ? 'Admin TransGadget' : msg.sender);
+            const nameColor = isMe ? 'text-indigo-400 text-right' : (isAdmin ? 'text-emerald-600 text-left' : 'text-slate-400 text-left');
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `max-w-[85%] flex flex-col ${alignParent}`;
+            msgDiv.innerHTML = `
+                <span class="text-[9px] mb-0.5 ${nameColor} font-bold tracking-wider uppercase">${senderName}</span>
+                <div class="px-3.5 py-2 rounded-2xl shadow-sm leading-relaxed ${bubbleColor}">
+                    ${msg.message}
+                </div>
+            `;
+            
+            chatMessages.appendChild(msgDiv);
+            scrollToBottomChat();
+        }
+
+        socket.on('load_old_messages', (messages) => {
+            chatMessages.innerHTML = '';
+            messages.forEach(msg => renderMessage(msg));
+        });
+
+        socket.on('receive_message', (msg) => {
+            renderMessage(msg);
+            if (msg.sender !== mySenderId) {
+                if (chatWindow.classList.contains('hidden')) {
+                    unreadChatCount++;
+                    chatBadge.classList.remove('hidden');
+                    chatBadge.innerText = unreadChatCount;
+
+                    const audio = document.getElementById('chat-notification-sound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log("Audio autoplay dibatasi browser:", e));
+                    }
+                    document.title = `(${unreadChatCount}) Pesan Baru dari Admin!`;
+                }
+            }
+        });
+
+        function sendChatMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            socket.emit('send_message', {
+                sender: mySenderId,
+                message: text
+            });
+
+            chatInput.value = '';
+            chatInput.focus();
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        // ==========================================
+        // LOGIKA E-COMMERCE & BANNER ALA FOOM
+        // ==========================================
         const API_URL = '/api/products';
         let allProducts = [];
         let currentCategory = 'Semua';
@@ -495,10 +643,16 @@
         let dynamicBanners = [];
         let currentBannerIndex = 0;
         let bannerInterval = null;
+        let isBannerPaused = false;
 
         async function initStore() {
             await loadBannersFromServer();
             await fetchCustomerProducts();
+
+            const shippingType = document.getElementById('shipping-type-selector');
+            if (shippingType) {
+                switchShippingType();
+            }
         }
 
         async function loadBannersFromServer() {
@@ -513,29 +667,37 @@
             }
 
             if (!dynamicBanners || dynamicBanners.length === 0) {
-                dynamicBanners = [
-                    {
-                        image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80',
-                        title: 'TransGadget.Indonesia',
-                        subtitle: 'Temukan koleksi Action Figure, Gundam, dan Board Game original terlengkap.',
-                        badge: 'New Collection'
-                    }
-                ];
+                dynamicBanners = [{
+                    image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80',
+                    title: 'Serunya Bersatu',
+                    subtitle: 'Temukan koleksi Action Figure, Gundam, dan Board Game original terlengkap.',
+                    badge: 'Promo Spesial'
+                }];
             }
-
             initDynamicBanner();
         }
 
         function initDynamicBanner() {
             renderBannerSlide();
             if (dynamicBanners.length > 1) {
-                document.getElementById('banner-prev-btn').classList.remove('hidden');
-                document.getElementById('banner-next-btn').classList.remove('hidden');
-                
-                if (bannerInterval) clearInterval(bannerInterval);
-                bannerInterval = setInterval(() => {
+                startBannerInterval();
+            }
+        }
+
+        function startBannerInterval() {
+            if (bannerInterval) clearInterval(bannerInterval);
+            bannerInterval = setInterval(() => {
+                if (!isBannerPaused) {
                     changeBannerSlide(1);
-                }, 5000);
+                }
+            }, 5000);
+        }
+
+        function toggleBannerPlayPause() {
+            isBannerPaused = !isBannerPaused;
+            const btn = document.getElementById('banner-pause-btn');
+            if (btn) {
+                btn.innerText = isBannerPaused ? '▶' : '⏸';
             }
         }
 
@@ -564,6 +726,7 @@
             document.getElementById('banner-title').innerText = banner.title || 'Official Toy Collector Space';
             document.getElementById('banner-subtitle').innerText = banner.subtitle || 'Temukan koleksi mainan eksklusif Anda di sini.';
             document.getElementById('banner-badge').innerText = banner.badge || 'Promo';
+            document.getElementById('banner-counter').innerText = `${currentBannerIndex + 1} / ${dynamicBanners.length}`;
         }
 
         function changeBannerSlide(direction) {
@@ -571,6 +734,13 @@
             if (currentBannerIndex < 0) currentBannerIndex = dynamicBanners.length - 1;
             if (currentBannerIndex >= dynamicBanners.length) currentBannerIndex = 0;
             renderBannerSlide();
+        }
+
+        function scrollToProducts() {
+            const grid = document.getElementById('product-grid');
+            if (grid) {
+                grid.scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
         async function autoSyncAddressToMap() {
@@ -584,26 +754,18 @@
             if (queryParts.length === 0) return;
 
             const searchQuery = queryParts.join(', ');
-            document.getElementById('map-status').innerText = 'Menyesuaikan titik peta berdasarkan alamat Anda...';
-
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=id&limit=1`);
                 const results = await res.json();
-
                 if (results && results.length > 0) {
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
-
                     if (leafletMap && leafletMarker) {
                         leafletMap.setView([lat, lon], 16);
                         leafletMarker.setLatLng([lat, lon]);
-                        
                         document.getElementById('cust-lat').value = lat.toFixed(6);
                         document.getElementById('cust-lng').value = lon.toFixed(6);
-                        document.getElementById('map-status').innerText = `📍 Posisi Peta Diperbarui: ${results[0].display_name.substring(0, 75)}...`;
                     }
-                } else {
-                    document.getElementById('map-status').innerText = 'Geser pin merah ke titik lokasi yang pas.';
                 }
             } catch (err) {
                 console.warn('Gagal geocoding otomatis:', err);
@@ -619,7 +781,6 @@
                 updateCartUI();
             } catch (error) {
                 console.error('Gagal memuat katalog:', error);
-                document.getElementById('product-grid').innerHTML = `<p class="text-rose-500 col-span-full text-center py-12 text-sm font-semibold">Gagal terhubung ke database server.</p>`;
             }
         }
 
@@ -635,40 +796,26 @@
 
             products.forEach((product, index) => {
                 const isAvailable = product.stock > 0;
-                const mediaList = (product.images && product.images.length > 0) 
-                    ? product.images 
-                    : (product.image ? [product.image] : ['https://via.placeholder.com/300?text=No+Image']);
-
+                const mediaList = (product.images && product.images.length > 0) ? product.images : (product.image ? [product.image] : ['https://via.placeholder.com/300?text=No+Image']);
                 const mainMedia = mediaList[0];
                 const isVideo = mainMedia.endsWith('.mp4') || mainMedia.includes('video') || mainMedia.startsWith('data:video');
 
-                let mediaHtml = '';
-                if (isVideo) {
-                    mediaHtml = `<video src="${mainMedia}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" muted></video>`;
-                } else {
-                    mediaHtml = `<img src="${mainMedia}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
-                }
+                let mediaHtml = isVideo ? `<video src="${mainMedia}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" muted></video>` : `<img src="${mainMedia}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
 
                 grid.innerHTML += `
                     <div onclick='openDetailModal(${index})' class="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
                         <div>
                             <div class="relative w-full aspect-square bg-slate-900 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
                                 ${mediaHtml}
-                                <span class="absolute top-2 left-2 bg-indigo-600/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                                    ${product.category || 'Action Figure'}
-                                </span>
-                                <span class="absolute top-2 right-2 ${isAvailable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
-                                    ${isAvailable ? 'Ready' : 'Habis'}
-                                </span>
+                                <span class="absolute top-2 left-2 bg-indigo-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">${product.category || 'Action Figure'}</span>
+                                <span class="absolute top-2 right-2 ${isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">${isAvailable ? 'Ready' : 'Habis'}</span>
                             </div>
                             <h3 class="font-bold text-slate-900 text-xs sm:text-sm tracking-tight group-hover:text-indigo-600 transition mb-1 line-clamp-2">${product.name}</h3>
-                            <p class="text-slate-500 text-[11px] mb-3 line-clamp-1 leading-relaxed">${product.description || 'Tidak ada deskripsi mainan.'}</p>
+                            <p class="text-slate-500 text-[11px] mb-3 line-clamp-1">${product.description || '-'}</p>
                         </div>
                         <div>
                             <div class="text-sm sm:text-base font-black text-slate-900 mb-3 tracking-tight">Rp ${Number(product.price).toLocaleString('id-ID')}</div>
-                            <div class="w-full bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-bold py-2 rounded-lg text-[11px] transition-all uppercase tracking-wider text-center">
-                                Lihat Detail
-                            </div>
+                            <div class="w-full bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-bold py-2 rounded-lg text-[11px] transition-all uppercase tracking-wider text-center">Lihat Detail</div>
                         </div>
                     </div>
                 `;
@@ -677,115 +824,50 @@
 
         function filterByCategory(category, element) {
             currentCategory = category;
-            const buttons = document.querySelectorAll('#category-filters button');
-            buttons.forEach(btn => {
-                btn.className = "hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600";
-            });
-            if (element) {
-                element.className = "text-indigo-600 border-b-2 border-indigo-600 pb-1 whitespace-nowrap font-bold";
-            }
+            document.querySelectorAll('#category-filters button').forEach(btn => btn.className = "hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600");
+            if (element) element.className = "text-indigo-600 border-b-2 border-indigo-600 pb-1 whitespace-nowrap font-bold";
             applyFilters();
         }
 
-        function filterProducts() {
-            applyFilters();
-        }
+        function filterProducts() { applyFilters(); }
 
         function applyFilters() {
-            const searchInput = document.getElementById('search-input');
-            const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
+            const keyword = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
             const filtered = allProducts.filter(product => {
-                const productName = (product.name || '').toLowerCase();
-                const productDesc = (product.description || '').toLowerCase();
-                const productCat = (product.category || '').toLowerCase();
-
-                const matchesKeyword = !keyword || productName.includes(keyword) || productDesc.includes(keyword) || productCat.includes(keyword);
-
-                let matchesCategory = false;
-                if (currentCategory === 'Semua') {
-                    matchesCategory = true;
-                } else {
-                    const normSelectedCat = currentCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const normProductCat = productCat.replace(/[^a-z0-9]/g, '');
-                    matchesCategory = normProductCat === normSelectedCat;
-                }
-
+                const name = (product.name || '').toLowerCase();
+                const cat = (product.category || '').toLowerCase();
+                const matchesKeyword = !keyword || name.includes(keyword) || cat.includes(keyword);
+                const matchesCategory = currentCategory === 'Semua' || cat.replace(/[^a-z0-9]/g, '') === currentCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
                 return matchesKeyword && matchesCategory;
             });
-
             displayProducts(filtered);
         }
 
         function openDetailModal(productIndex) {
             activeProduct = allProducts[productIndex];
-            activeImages = (activeProduct.images && activeProduct.images.length > 0) 
-                ? activeProduct.images 
-                : (activeProduct.image ? [activeProduct.image] : ['https://via.placeholder.com/300?text=No+Image']);
-            
+            activeImages = (activeProduct.images && activeProduct.images.length > 0) ? activeProduct.images : (activeProduct.image ? [activeProduct.image] : ['https://via.placeholder.com/300?text=No+Image']);
             activeSlideIndex = 0;
             selectedQuantity = 1;
             document.getElementById('modal-quantity').innerText = selectedQuantity;
-
             document.getElementById('modal-product-name').innerText = activeProduct.name;
             document.getElementById('modal-product-price').innerText = `Rp ${Number(activeProduct.price).toLocaleString('id-ID')}`;
             document.getElementById('modal-product-weight').innerText = `⚖️ Berat: ${activeProduct.weight || 500} gram`;
-            document.getElementById('modal-product-desc').innerText = activeProduct.description || 'Tidak ada deskripsi mainan yang tersedia.';
-            document.getElementById('modal-product-stock').innerText = `Stok Tersedia: ${activeProduct.stock} unit`;
-            
-            const soldCount = calculateTotalSold(activeProduct);
-            document.getElementById('modal-product-sold').innerText = `${soldCount} terjual`;
+            document.getElementById('modal-product-desc').innerText = activeProduct.description || '-';
+            document.getElementById('modal-product-stock').innerText = `Stok: ${activeProduct.stock} unit`;
+            document.getElementById('modal-product-sold').innerText = `0 terjual`;
 
-            const statusBadge = document.getElementById('modal-product-status');
             const addBtn = document.getElementById('modal-add-btn');
-
             if (activeProduct.stock > 0) {
-                statusBadge.className = 'text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200';
-                statusBadge.innerText = 'Ready Stock';
                 addBtn.disabled = false;
                 addBtn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-600/25 cursor-pointer mt-2';
-                addBtn.onclick = () => {
-                    addToCart(activeProduct, selectedQuantity);
-                    toggleDetailModal(false);
-                };
+                addBtn.onclick = () => { addToCart(activeProduct, selectedQuantity); toggleDetailModal(false); };
             } else {
-                statusBadge.className = 'text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200';
-                statusBadge.innerText = 'Stok Habis';
                 addBtn.disabled = true;
                 addBtn.className = 'w-full bg-slate-100 text-slate-400 font-bold py-3.5 rounded-2xl text-xs uppercase tracking-wider cursor-not-allowed mt-2';
                 addBtn.onclick = null;
             }
-
             updateSliderView();
-            renderThumbnails();
             toggleDetailModal(true);
-        }
-
-        function calculateTotalSold(product) {
-            if (typeof product.sold === 'number') return product.sold;
-            if (typeof product.totalSold === 'number') return product.totalSold;
-
-            try {
-                const orders = JSON.parse(localStorage.getItem('transgadget_orders')) || JSON.parse(localStorage.getItem('pesananMasuk')) || [];
-                let total = 0;
-                const targetId = product._id || product.id;
-                const targetName = (product.name || '').toLowerCase().trim();
-
-                orders.forEach(order => {
-                    if (order.items && Array.isArray(order.items)) {
-                        order.items.forEach(item => {
-                            const itemId = item._id || item.productId || item.id;
-                            const itemName = (item.name || '').toLowerCase().trim();
-                            if ((targetId && itemId && String(itemId) === String(targetId)) || (itemName && itemName === targetName)) {
-                                total += (parseInt(item.quantity) || 1);
-                            }
-                        });
-                    }
-                });
-                return total;
-            } catch (e) {
-                return 0;
-            }
         }
 
         function updateModalQuantity(change) {
@@ -800,7 +882,6 @@
         function updateSliderView() {
             const currentMedia = activeImages[activeSlideIndex];
             const isVideo = currentMedia.endsWith('.mp4') || currentMedia.includes('video') || currentMedia.startsWith('data:video');
-
             const imgEl = document.getElementById('detail-slider-img');
             const videoEl = document.getElementById('detail-slider-video');
 
@@ -810,61 +891,11 @@
                 videoEl.src = currentMedia;
             } else {
                 videoEl.classList.add('hidden');
-                videoEl.pause();
                 videoEl.src = '';
                 imgEl.classList.remove('hidden');
                 imgEl.src = currentMedia;
             }
-
             document.getElementById('slider-counter').innerText = `${activeSlideIndex + 1} / ${activeImages.length}`;
-
-            const prevBtn = document.getElementById('slider-prev');
-            const nextBtn = document.getElementById('slider-next');
-            if (activeImages.length <= 1) {
-                prevBtn.classList.add('hidden');
-                nextBtn.classList.add('hidden');
-            } else {
-                prevBtn.classList.remove('hidden');
-                nextBtn.classList.remove('hidden');
-            }
-
-            const thumbs = document.querySelectorAll('.thumb-item');
-            thumbs.forEach((t, i) => {
-                if (i === activeSlideIndex) {
-                    t.classList.add('border-indigo-600', 'ring-2', 'ring-indigo-600/30');
-                    t.classList.remove('border-slate-200');
-                } else {
-                    t.classList.remove('border-indigo-600', 'ring-2', 'ring-indigo-600/30');
-                    t.classList.add('border-slate-200');
-                }
-            });
-        }
-
-        function renderThumbnails() {
-            const container = document.getElementById('detail-thumbnails');
-            container.innerHTML = '';
-            if (activeImages.length <= 1) return;
-
-            activeImages.forEach((mediaUrl, idx) => {
-                const isVideo = mediaUrl.endsWith('.mp4') || mediaUrl.includes('video') || mediaUrl.startsWith('data:video');
-                let thumbContent = '';
-                if (isVideo) {
-                    thumbContent = `<div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white text-[9px] font-bold">Vid</div>`;
-                } else {
-                    thumbContent = `<img src="${mediaUrl}" class="w-12 h-12 object-cover rounded-xl">`;
-                }
-
-                container.innerHTML += `
-                    <div onclick="setSlide(${idx})" class="thumb-item w-12 h-12 rounded-xl border border-slate-200 cursor-pointer overflow-hidden flex-shrink-0 transition">
-                        ${thumbContent}
-                    </div>
-                `;
-            });
-        }
-
-        function setSlide(index) {
-            activeSlideIndex = index;
-            updateSliderView();
         }
 
         function changeSlide(direction) {
@@ -887,132 +918,60 @@
         function initMap() {
             const defaultLat = -6.115500;
             const defaultLng = 106.744100;
-
             if (!leafletMap) {
                 leafletMap = L.map('map').setView([defaultLat, defaultLng], 15);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap'
-                }).addTo(leafletMap);
-
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(leafletMap);
                 leafletMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(leafletMap);
-
-                updateCoordsAndAddress(defaultLat, defaultLng);
-
-                leafletMarker.on('dragend', function () {
-                    const pos = leafletMarker.getLatLng();
-                    updateCoordsAndAddress(pos.lat, pos.lng);
-                });
-
-                leafletMap.on('click', function (e) {
-                    leafletMarker.setLatLng(e.latlng);
-                    updateCoordsAndAddress(e.latlng.lat, e.latlng.lng);
-                });
+                updateCoords(defaultLat, defaultLng);
+                leafletMarker.on('dragend', () => { const p = leafletMarker.getLatLng(); updateCoords(p.lat, p.lng); });
+                leafletMap.on('click', (e) => { leafletMarker.setLatLng(e.latlng); updateCoords(e.latlng.lat, e.latlng.lng); });
             } else {
                 leafletMap.invalidateSize();
             }
         }
 
-        async function updateCoordsAndAddress(lat, lng) {
+        function updateCoords(lat, lng) {
             document.getElementById('cust-lat').value = lat.toFixed(6);
             document.getElementById('cust-lng').value = lng.toFixed(6);
-            document.getElementById('map-status').innerText = `Titik terpilih: ${lat.toFixed(5)}, ${lng.toFixed(5)} (Mengambil nama lokasi...)`;
-
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=id`);
-                const data = await res.json();
-                
-                if (data && data.address) {
-                    const addr = data.address;
-                    const district = addr.subdistrict || addr.district || addr.city_district || '';
-                    const province = addr.state || '';
-                    const displayAddress = data.display_name || '';
-
-                    if (district && !document.getElementById('cust-district').value) document.getElementById('cust-district').value = district;
-
-                    if (province) {
-                        const provinceSelect = document.getElementById('cust-province');
-                        for (let opt of provinceSelect.options) {
-                            if (province.toLowerCase().includes(opt.value.toLowerCase())) {
-                                provinceSelect.value = opt.value;
-                                break;
-                            }
-                        }
-                    }
-
-                    document.getElementById('map-status').innerText = `📍 Posisi: ${displayAddress.substring(0, 75)}...`;
-                }
-            } catch (e) {
-                document.getElementById('map-status').innerText = `Titik Terpasang: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            }
+            document.getElementById('map-status').innerText = `Titik terpilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         }
 
         async function searchLocationOnMap() {
             const query = document.getElementById('map-search-input').value.trim();
-            if (!query) {
-                alert('Ketik nama lokasi atau jalan terlebih dahulu!');
-                return;
-            }
-
-            document.getElementById('map-status').innerText = 'Mencari lokasi di peta...';
-
+            if (!query) return alert('Ketik nama lokasi terlebih dahulu!');
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=1`);
                 const results = await res.json();
-
                 if (results && results.length > 0) {
                     const lat = parseFloat(results[0].lat);
                     const lon = parseFloat(results[0].lon);
-
                     leafletMap.setView([lat, lon], 17);
                     leafletMarker.setLatLng([lat, lon]);
-                    updateCoordsAndAddress(lat, lon);
+                    updateCoords(lat, lon);
                 } else {
                     alert('Lokasi tidak ditemukan.');
-                    document.getElementById('map-status').innerText = 'Lokasi tidak ditemukan.';
                 }
-            } catch (err) {
-                alert('Gagal mencari lokasi.');
-            }
+            } catch (err) { alert('Gagal mencari lokasi.'); }
         }
 
         function getCurrentLocation() {
-            if (!navigator.geolocation) {
-                alert('Fitur GPS tidak didukung di browser ini.');
-                return;
-            }
-
-            document.getElementById('map-status').innerText = 'Mendeteksi lokasi GPS Anda...';
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    if (leafletMap && leafletMarker) {
-                        leafletMap.setView([lat, lng], 17);
-                        leafletMarker.setLatLng([lat, lng]);
-                        updateCoordsAndAddress(lat, lng);
-                    }
-                },
-                (err) => {
-                    alert('Gagal mendeteksi GPS.');
-                    document.getElementById('map-status').innerText = 'Gagal lacak GPS.';
-                },
-                { enableHighAccuracy: true }
-            );
+            if (!navigator.geolocation) return alert('GPS tidak didukung.');
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                leafletMap.setView([lat, lng], 17);
+                leafletMarker.setLatLng([lat, lng]);
+                updateCoords(lat, lng);
+            }, () => alert('Gagal mendeteksi GPS.'), { enableHighAccuracy: true });
         }
 
         function addToCart(product, qty = 1) {
             const productId = product._id || product.id;
-            const existingIndex = cart.findIndex(item => (item._id || item.id) === productId);
-            const productWeight = parseInt(product.weight) || 500;
-            const numericPrice = Number(product.price) || 0;
-
-            if (existingIndex > -1) {
-                cart[existingIndex].quantity += qty;
-                cart[existingIndex].weight = productWeight;
-                cart[existingIndex].price = numericPrice;
+            const existing = cart.find(item => (item._id || item.id) === productId);
+            if (existing) {
+                existing.quantity += qty;
             } else {
-                cart.push({ ...product, id: productId, price: numericPrice, weight: productWeight, quantity: qty });
+                cart.push({ ...product, id: productId, price: Number(product.price) || 0, weight: parseInt(product.weight) || 500, quantity: qty });
             }
             saveAndRefreshCart();
             toggleCartModal(true);
@@ -1035,32 +994,26 @@
         function updateCartUI() {
             const container = document.getElementById('cart-items-container');
             const badge = document.getElementById('cart-badge');
-            const formContainer = document.getElementById('checkout-form-container');
-            
             container.innerHTML = '';
             subtotalAmount = 0;
             let totalCount = 0;
 
             if (cart.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-xs text-center py-8">Keranjang belanja mainan Anda masih kosong.</p>`;
+                container.innerHTML = `<p class="text-slate-400 text-xs text-center py-8">Keranjang belanja kosong.</p>`;
                 badge.classList.add('hidden');
-                if (formContainer) formContainer.classList.add('hidden');
             } else {
                 badge.classList.remove('hidden');
-                if (formContainer) formContainer.classList.remove('hidden');
-
                 cart.forEach((item, index) => {
                     const itemPrice = Number(item.price) || 0;
                     subtotalAmount += itemPrice * item.quantity;
                     totalCount += item.quantity;
-                    const itemWeightTotal = (parseInt(item.weight) || 500) * item.quantity;
                     container.innerHTML += `
                         <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
                             <div>
                                 <h4 class="font-bold text-slate-900">${item.name}</h4>
-                                <span class="text-slate-500">${item.quantity} x Rp ${itemPrice.toLocaleString('id-ID')} (${itemWeightTotal}g)</span>
+                                <span class="text-slate-500">${item.quantity} x Rp ${itemPrice.toLocaleString('id-ID')}</span>
                             </div>
-                            <button onclick="removeFromCart(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1">Hapus</button>
+                            <button onclick="removeFromCart(${index})" class="text-rose-500 font-bold px-2 py-1">Hapus</button>
                         </div>
                     `;
                 });
@@ -1069,51 +1022,168 @@
             badge.innerText = totalCount;
             document.getElementById('summary-subtotal').innerText = `Rp ${subtotalAmount.toLocaleString('id-ID')}`;
             document.getElementById('summary-weight').innerText = getTotalWeight();
-            
-            calculateOngkir();
         }
 
-        function calculateOngkir() {
-            const cityName = document.getElementById('cust-city').value.trim();
-            const courier = document.getElementById('cust-courier').value;
+        function switchShippingType() {
+            const type = document.getElementById('shipping-type-selector').value;
+            const mapSection = document.getElementById('instant-map-section');
             const serviceSelect = document.getElementById('cust-service');
+            const serviceLabel = document.getElementById('service-label');
+            const helpText = document.getElementById('shipping-type-help');
 
-            if (!cityName) {
-                serviceSelect.innerHTML = '<option value="">-- Ketik Kota Dulu --</option>';
+            if (type === 'instant') {
+                mapSection.classList.remove('hidden');
+                serviceLabel.innerText = 'Pilih Layanan Kurir Instan';
+                helpText.innerText = 'Kurir instan membutuhkan titik lokasi Maps agar tarif dapat dihitung.';
+                serviceSelect.innerHTML = '<option value="">-- Klik "Cek Tarif" untuk melihat layanan --</option>';
+            } else {
+                mapSection.classList.add('hidden');
+                serviceLabel.innerText = 'Pilih Layanan JNE';
+                helpText.innerText = 'JNE tidak membutuhkan titik Maps. Cukup lengkapi alamat dan kota tujuan.';
+                serviceSelect.innerHTML = '<option value="">-- Klik "Cek Tarif" untuk melihat layanan JNE --</option>';
+            }
+
+            selectedOngkirCost = 0;
+            selectedServiceDescription = '';
+            updateGrandTotal();
+
+            if (type === 'instant') {
+                setTimeout(() => {
+                    initMap();
+                    if (leafletMap) leafletMap.invalidateSize();
+                }, 100);
+            }
+        }
+
+        function triggerRateCalculation() {
+            const type = document.getElementById('shipping-type-selector').value;
+
+            if (cart.length === 0) {
+                return alert('Keranjang belanja masih kosong.');
+            }
+
+            if (type === 'instant') {
+                const address = document.getElementById('cust-address').value.trim();
+                if (!address) {
+                    return alert('Lengkapi alamat tujuan terlebih dahulu.');
+                }
+                calculateBiteshipRates();
+            } else {
+                const city = document.getElementById('cust-city').value.trim();
+                if (!city) {
+                    return alert('Ketik kota tujuan terlebih dahulu.');
+                }
+                fetchJneRates();
+            }
+        }
+
+        async function fetchJneRates() {
+            const city = document.getElementById('cust-city').value.trim();
+            const serviceSelect = document.getElementById('cust-service');
+            const totalWeight = getTotalWeight();
+
+            if (!city) {
+                serviceSelect.innerHTML = '<option value="">-- Ketik Kota Tujuan Dulu --</option>';
                 selectedOngkirCost = 0;
                 updateGrandTotal();
                 return;
             }
 
-            const totalKg = Math.ceil(getTotalWeight() / 1000) || 1;
-            const lowerCity = cityName.toLowerCase();
+            serviceSelect.innerHTML = '<option value="">Menghitung tarif JNE...</option>';
 
-            let baseRate = 14000;
-            if (lowerCity.includes('purwakarta') || lowerCity.includes('bandung')) {
-                baseRate = 22000;
-            } else if (!lowerCity.includes('jakarta')) {
-                baseRate = 28000;
+            try {
+                const response = await fetch('/api/jne/rates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destinationCode: city, weight: totalWeight })
+                });
+                const result = await response.json();
+
+                if (result.success && result.pricing && result.pricing.length > 0) {
+                    serviceSelect.innerHTML = '';
+                    result.pricing.forEach(rate => {
+                        serviceSelect.innerHTML += `
+                            <option value="${rate.price}" data-desc="JNE ${rate.service_name} (${rate.etd || 'Reguler'})">
+                                JNE ${rate.service_name} - Rp ${Number(rate.price).toLocaleString('id-ID')} (${rate.etd || 'Reguler'})
+                            </option>
+                        `;
+                    });
+                    updateGrandTotal();
+                } else {
+                    serviceSelect.innerHTML = `
+                        <option value="20000" data-desc="JNE REG">JNE REG (Reguler 2-3 Hari) - Rp 20.000</option>
+                        <option value="35000" data-desc="JNE YES">JNE YES (Yakin Esok Sampai) - Rp 35.000</option>
+                    `;
+                    updateGrandTotal();
+                }
+            } catch (err) {
+                console.error(err);
+                serviceSelect.innerHTML = `
+                    <option value="20000" data-desc="JNE REG">JNE REG (Reguler 2-3 Hari) - Rp 20.000</option>
+                    <option value="35000" data-desc="JNE YES">JNE YES (Yakin Esok Sampai) - Rp 35.000</option>
+                `;
+                updateGrandTotal();
+            }
+        }
+
+        async function calculateBiteshipRates() {
+            const lat = document.getElementById('cust-lat').value;
+            const lng = document.getElementById('cust-lng').value;
+            const address = document.getElementById('cust-address').value;
+            const serviceSelect = document.getElementById('cust-service');
+
+            if (!address) {
+                serviceSelect.innerHTML = '<option value="">-- Lengkapi Alamat Tujuan Dulu --</option>';
+                selectedOngkirCost = 0;
+                updateGrandTotal();
+                return;
             }
 
-            const regPrice = Math.round(baseRate * totalKg);
-            const expPrice = Math.round((baseRate + 12000) * totalKg);
+            if (!lat || !lng || Number.isNaN(parseFloat(lat)) || Number.isNaN(parseFloat(lng))) {
+                serviceSelect.innerHTML = '<option value="">-- Tentukan titik lokasi Maps terlebih dahulu --</option>';
+                selectedOngkirCost = 0;
+                updateGrandTotal();
+                return;
+            }
 
-            serviceSelect.innerHTML = `
-                <option value="${regPrice}" data-desc="REG (2-3 Hari)">REG - Rp ${regPrice.toLocaleString('id-ID')} (2-3 Hari)</option>
-                <option value="${expPrice}" data-desc="YES (1 Hari)">YES - Rp ${expPrice.toLocaleString('id-ID')} (1 Hari)</option>
-            `;
-            updateGrandTotal();
+            serviceSelect.innerHTML = '<option value="">Menghitung tarif kurir instan...</option>';
+
+            try {
+                const response = await fetch('/api/biteship/rates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        destinationLatitude: parseFloat(lat),
+                        destinationLongitude: parseFloat(lng),
+                        items: cart.map(i => ({ name: i.name, value: i.price, quantity: i.quantity, weight: i.weight || 500 }))
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success && result.pricing && result.pricing.length > 0) {
+                    serviceSelect.innerHTML = '';
+                    result.pricing.forEach(rate => {
+                        serviceSelect.innerHTML += `<option value="${rate.price}" data-desc="${rate.courier_name} - ${rate.courier_service_name}">${rate.courier_name} (${rate.courier_service_name}) - Rp ${rate.price.toLocaleString('id-ID')}</option>`;
+                    });
+                    updateGrandTotal();
+                } else {
+                    serviceSelect.innerHTML = '<option value="15000" data-desc="Gojek Instant">Gojek Instant - Rp 15.000</option>';
+                    updateGrandTotal();
+                }
+            } catch (err) {
+                console.error(err);
+                serviceSelect.innerHTML = '<option value="15000" data-desc="Gojek Instant">Gojek Instant - Rp 15.000</option>';
+                updateGrandTotal();
+            }
         }
 
         function updateGrandTotal() {
             const serviceSelect = document.getElementById('cust-service');
             const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            
             selectedOngkirCost = Number(serviceSelect.value) || 0;
-            selectedServiceDescription = selectedOption ? (selectedOption.getAttribute('data-desc') || '') : '';
+            selectedServiceDescription = selectedOption ? (selectedOption.getAttribute('data-desc') || 'Kurir Pilihan') : '';
 
             document.getElementById('summary-ongkir').innerText = `Rp ${selectedOngkirCost.toLocaleString('id-ID')}`;
-            
             const grandTotal = Number(subtotalAmount) + Number(selectedOngkirCost);
             document.getElementById('cart-total').innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
         }
@@ -1122,23 +1192,21 @@
             const modal = document.getElementById('cart-modal');
             if (show) {
                 modal.classList.remove('hidden');
-                setTimeout(() => {
-                    initMap();
-                    if (leafletMap) {
-                        leafletMap.invalidateSize();
-                    }
-                }, 350);
+
+                const type = document.getElementById('shipping-type-selector')?.value || 'jne';
+                if (type === 'instant') {
+                    setTimeout(() => {
+                        initMap();
+                        if (leafletMap) leafletMap.invalidateSize();
+                    }, 350);
+                }
             } else {
                 modal.classList.add('hidden');
             }
         }
 
         async function checkout() {
-            if (cart.length === 0) {
-                alert('Keranjang belanja Anda masih kosong.');
-                return;
-            }
-
+            if (cart.length === 0) return alert('Keranjang belanja kosong.');
             const firstName = document.getElementById('cust-firstname').value.trim();
             const lastName = document.getElementById('cust-lastname').value.trim();
             const fullName = `${firstName} ${lastName}`.trim();
@@ -1149,17 +1217,11 @@
             const province = document.getElementById('cust-province').value;
             const postal = document.getElementById('cust-postal').value.trim();
             const address = document.getElementById('cust-address').value.trim();
-            const courier = document.getElementById('cust-courier').value.toUpperCase();
-            
-            // Metode Pembayaran dikunci otomatis menjadi Gateway Online (Xendit)
-            const payment = 'Xendit Payment Gateway';
-            
             const lat = document.getElementById('cust-lat').value;
             const lng = document.getElementById('cust-lng').value;
 
             if (!firstName || !phone || !cityName || !district || !province || !address) {
-                alert('Mohon lengkapi Nama depan, Telepon, Kota, Kecamatan, Provinsi, serta Alamat secara lengkap!');
-                return;
+                return alert('Mohon lengkapi Nama depan, Telepon, Kota, Kecamatan, Provinsi, serta Alamat secara lengkap!');
             }
 
             const checkoutBtn = document.getElementById('checkout-btn');
@@ -1167,172 +1229,56 @@
             checkoutBtn.disabled = true;
 
             const orderId = Math.floor(100000 + Math.random() * 900000).toString();
-            const orderDate = new Date().toLocaleString('id-ID');
             const totalAmount = Number(subtotalAmount) + Number(selectedOngkirCost);
-
             const fullAddressText = `${address}, Kec. ${district}, ${cityName}, Prov. ${province} ${postal ? '- ' + postal : ''} (${country})`;
-            const googleMapsUrl = (lat && lng) ? `https://maps.google.com/?q=${lat},${lng}` : '-';
+            const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
             const newOrder = {
-                id: orderId,
                 orderId: orderId,
-                date: orderDate,
-                createdAt: new Date().toISOString(),
-                customer: { 
-                    name: fullName, 
-                    phone, 
-                    whatsapp: phone,
-                    country,
-                    province,
-                    city: cityName, 
-                    district,
-                    postal,
-                    address: fullAddressText, 
+                customer: {
+                    name: fullName,
+                    phone: phone,
+                    address: fullAddressText,
                     mapsUrl: googleMapsUrl,
-                    courier: `${courier} - ${selectedServiceDescription}`, 
-                    payment 
+                    courier: selectedServiceDescription || 'Kurir Reguler/Instan',
+                    payment: 'Xendit Payment Gateway'
                 },
                 items: cart,
                 subtotal: Number(subtotalAmount),
                 ongkir: Number(selectedOngkirCost),
-                total: totalAmount,
                 totalAmount: totalAmount,
                 status: 'Diproses oleh Admin'
             };
 
-            // Simpan riwayat pesanan ke localStorage
-            const orders = JSON.parse(localStorage.getItem('transgadget_orders')) || [];
-            orders.push(newOrder);
-            localStorage.setItem('transgadget_orders', JSON.stringify(orders));
-
-            const pesananMasuk = JSON.parse(localStorage.getItem('pesananMasuk')) || [];
-            pesananMasuk.push(newOrder);
-            localStorage.setItem('pesananMasuk', JSON.stringify(pesananMasuk));
-
             try {
-                // 1. Simpan pesanan ke database MongoDB melalui backend
                 await fetch('/api/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderId: orderId,
-                        customerName: fullName,
-                        customerPhone: phone,
-                        address: fullAddressText,
-                        courier: `${courier} - ${selectedServiceDescription}`,
-                        paymentMethod: payment,
-                        customer: newOrder.customer,
-                        items: cart.map(item => ({
-                            productId: item._id || item.id,
-                            name: item.name,
-                            price: Number(item.price) || 0,
-                            quantity: item.quantity
-                        })),
-                        subtotal: Number(subtotalAmount),
-                        ongkir: Number(selectedOngkirCost),
-                        totalAmount: totalAmount,
-                        status: 'Diproses oleh Admin'
-                    })
+                    body: JSON.stringify(newOrder)
                 });
 
-                // 2. Panggil API pembuatan Invoice Xendit
-                const response = await fetch('/api/create-xendit-invoice', {
+                const res = await fetch('/api/create-xendit-invoice', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderId: orderId,
-                        amount: totalAmount,
-                        customerName: fullName,
-                        description: `Pembayaran Pesanan TransGadget #${orderId}`
-                    })
+                    body: JSON.stringify({ orderId: orderId, amount: totalAmount, customerName: fullName, description: `Pesanan TransGadget #${orderId}` })
                 });
-
-                const result = await response.json();
+                const result = await res.json();
 
                 if (result.success) {
                     cart = [];
                     saveAndRefreshCart();
-                    // 3. Alihkan pengguna langsung ke URL Invoice Pembayaran Xendit
                     window.location.href = result.invoiceUrl;
                 } else {
-                    alert('Gagal memproses pembayaran: ' + result.error + '. Silakan hubungi admin kami.');
-                    showPaymentModal(orderId, totalAmount, payment, newOrder);
-                    cart = [];
-                    saveAndRefreshCart();
-                    toggleCartModal(false);
+                    alert('Gagal membuat invoice pembayaran.');
+                    checkoutBtn.innerText = 'Proses Checkout Sekarang';
+                    checkoutBtn.disabled = false;
                 }
-            } catch (error) {
-                console.error('Error simpan order:', error);
-                alert('Terjadi kesalahan pada sistem saat memproses checkout.');
-            } finally {
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan sistem.');
                 checkoutBtn.innerText = 'Proses Checkout Sekarang';
                 checkoutBtn.disabled = false;
             }
-        }
-
-        function showPaymentModal(orderId, total, paymentMethod, orderData) {
-            document.getElementById('pay-order-id').innerText = `#${orderId}`;
-            document.getElementById('pay-total-amount').innerText = `Rp ${Number(total).toLocaleString('id-ID')}`;
-            
-            const detailsContainer = document.getElementById('payment-details-content');
-            
-            // Sebagai fallback jika Xendit gagal
-            detailsContainer.innerHTML = `
-                <p class="font-bold text-slate-800">Transfer / E-Wallet Manual</p>
-                <p class="text-slate-500">Karena terjadi gangguan pada Payment Gateway otomatis, silakan hubungi Admin melalui tombol WA di bawah untuk instruksi pembayaran.</p>
-            `;
-            
-            let itemDetails = '';
-            orderData.items.forEach((item, index) => {
-                const itemTotal = (Number(item.price) || 0) * item.quantity;
-                itemDetails += `   ${index + 1}. *${item.name}* (${item.quantity}x)\n   ↳ Rp ${itemTotal.toLocaleString('id-ID')}\n`;
-            });
-
-            const waMessage = 
-`━━━━━━━━━━━━━━━━━━━━━━
-   *KONFIRMASI PESANAN BARU*
-   *TransGadget Indonesia*
-━━━━━━━━━━━━━━━━━━━━━━
-
-📌 *DETAIL TRANSAKSI*
-• *ID Pesanan:* #${orderId}
-• *Tanggal:* ${orderData.date}
-
-👤 *DATA PEMBELI*
-• *Nama:* ${orderData.customer.name}
-• *No. HP/WA:* ${orderData.customer.phone}
-• *Negara/Wilayah:* ${orderData.customer.country}
-• *Provinsi:* ${orderData.customer.province}
-• *Kota:* ${orderData.customer.city}
-• *Kecamatan:* ${orderData.customer.district}
-• *Kode Pos:* ${orderData.customer.postal || '-'}
-• *Alamat:* ${orderData.customer.address}
-• *Google Maps Pinpoint:* ${orderData.customer.mapsUrl}
-
-🚚 *PENGIRIMAN & PEMBAYARAN*
-• *Kurir:* ${orderData.customer.courier}
-• *Metode:* ${orderData.customer.payment}
-
-🛍️ *RINCIAN ITEM*
-${itemDetails}
-━━━━━━━━━━━━━━━━━━━━━━
-💵 *Subtotal Produk:* Rp ${Number(orderData.subtotal).toLocaleString('id-ID')}
-🚚 *Ongkos Kirim:* Rp ${Number(orderData.ongkir).toLocaleString('id-ID')}
-💰 *TOTAL PEMBAYARAN:*
-*Rp ${Number(total).toLocaleString('id-ID')}*
-━━━━━━━━━━━━━━━━━━━━━━
-
-Halo Admin TransGadget, saya ingin mengonfirmasi pesanan di atas karena pembayaran otomatis gagal.`;
-
-            const adminPhoneNumber = '6289633973285';
-            const waUrl = `https://wa.me/${adminPhoneNumber}?text=${encodeURIComponent(waMessage)}`;
-
-            document.getElementById('wa-confirm-btn').href = waUrl;
-            document.getElementById('payment-modal').classList.remove('hidden');
-        }
-
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden');
         }
 
         initStore();

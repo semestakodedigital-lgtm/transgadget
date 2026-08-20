@@ -1,23 +1,30 @@
 require('dotenv').config(); // Load environment variables dari file .env
 
 const express = require('express');
+const http = require('http'); // Modul bawaan Node.js untuk membungkus Express
+const { Server } = require('socket.io'); // Modul Socket.io
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const axios = require('axios'); // Modul axios untuk HTTP Request ke API RajaOngkir
+const axios = require('axios'); // Modul axios untuk HTTP Request ke API Biteship
 const cloudinary = require('cloudinary').v2; // Modul Cloudinary
 const { CloudinaryStorage } = require('multer-storage-cloudinary'); // Modul Storage Multer ke Cloudinary
-const { Xendit } = require('xendit-node'); // DIPERBARUI: Modul Xendit Payment Gateway
+const { Xendit } = require('xendit-node'); // Modul Xendit Payment Gateway
 const connectDB = require('./config/db'); // Modul koneksi MongoDB dari folder config
+
 const Product = require('./models/Product');
 const Order = require('./models/Order'); // Model MongoDB untuk Pesanan
 const Banner = require('./models/Banner'); // Model MongoDB untuk Banner & Video Promosi
-const Transaction = require('./models/Transaction'); // MODEL BARU: Untuk Laporan Keuangan Independen
+const Transaction = require('./models/Transaction'); // MODEL: Untuk Laporan Keuangan Independen
+const Chat = require('./models/chat'); // MODEL: Untuk Live Chat
 
 const app = express();
+const server = http.createServer(app); // Menggabungkan Express dengan HTTP Server
+const io = new Server(server); // Inisialisasi Socket.io di dalam server
+
 const PORT = process.env.PORT || 3000;
 
-// Config Xendit SDK Initialization - DIPERBARUI
+// Config Xendit SDK Initialization
 const xenditInstance = new Xendit({
     secretKey: process.env.XENDIT_SECRET_KEY || ''
 });
@@ -58,6 +65,41 @@ app.get('/', (req, res) => {
 });
 
 // -------------------------------------------------------------
+// FITUR LIVE CHAT (SOCKET.IO)
+// -------------------------------------------------------------
+io.on('connection', (socket) => {
+    console.log('User terhubung ke Live Chat dengan ID:', socket.id);
+
+    // Kirim riwayat pesan lama saat user pertama kali buka chat
+    Chat.find().sort({ timestamp: 1 }).limit(50) // Ambil 50 pesan terakhir
+        .then(messages => {
+            socket.emit('load_old_messages', messages);
+        })
+        .catch(err => console.error('Gagal memuat riwayat pesan:', err));
+
+    // Tangkap pesan baru dari frontend
+    socket.on('send_message', async (data) => {
+        try {
+            // Simpan ke database
+            const newChat = new Chat({
+                sender: data.sender || 'Customer',
+                message: data.message
+            });
+            await newChat.save();
+
+            // Pancarkan pesan ke semua orang yang terkoneksi (termasuk admin)
+            io.emit('receive_message', newChat);
+        } catch (error) {
+            console.error('Gagal menyimpan pesan:', error);
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User terputus dari Live Chat:', socket.id);
+    });
+});
+
+// -------------------------------------------------------------
 // FITUR PEMBAYARAN XENDIT (CREATE INVOICE)
 // -------------------------------------------------------------
 
@@ -65,7 +107,6 @@ app.post('/api/create-xendit-invoice', async (req, res) => {
     try {
         const { orderId, amount, customerEmail, customerName, description } = req.body;
 
-        // Menggunakan instance xenditInstance untuk mengakses Invoice
         const response = await xenditInstance.Invoice.createInvoice({
             data: {
                 externalId: orderId ? `INV-${orderId}-${Date.now()}` : `INV-${Date.now()}`,
@@ -152,7 +193,7 @@ app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
         }
 
         if (req.files && req.files.length > 0) {
-            const uploadedUrls = req.files.map(file => file.path); // file.path berisi URL Cloudinary
+            const uploadedUrls = req.files.map(file => file.path);
             images = images.concat(uploadedUrls);
         }
 
@@ -266,117 +307,67 @@ app.delete('/api/banners/:id', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// FITUR CEK ONGKIR (RAJAONGKIR API INTEGRATION)
+// FITUR PENGIRIMAN INSTAN (BITESHIP API INTEGRATION - GOJEK & GRAB)
 // -------------------------------------------------------------
-const RAJAONGKIR_API_KEY = process.env.RAJAONGKIR_API_KEY || '';
-const ORIGIN_CITY_ID = process.env.ORIGIN_CITY_ID || '155'; // Default fallback ke Jakarta Utara (155)
+const BITESHIP_API_KEY = process.env.BITESHIP_API_KEY || '';
 
-const DUMMY_CITIES = [
-    { city_id: '152', city_name: 'Jakarta Pusat', type: 'Kota' },
-    { city_id: '151', city_name: 'Jakarta Barat', type: 'Kota' },
-    { city_id: '153', city_name: 'Jakarta Selatan', type: 'Kota' },
-    { city_id: '154', city_name: 'Jakarta Timur', type: 'Kota' },
-    { city_id: '155', city_name: 'Jakarta Utara', type: 'Kota' },
-    { city_id: '23',  city_name: 'Bandung', type: 'Kota' },
-    { city_id: '501', city_name: 'Yogyakarta', type: 'Kota' },
-    { city_id: '444', city_name: 'Surabaya', type: 'Kota' },
-    { city_id: '114', city_name: 'Denpasar', type: 'Kota' },
-    { city_id: '278', city_name: 'Medan', type: 'Kota' }
-];
-
-app.get('/api/cities', async (req, res) => {
-    try {
-        if (!RAJAONGKIR_API_KEY) {
-            return res.status(200).json({ success: true, data: DUMMY_CITIES });
-        }
-
-        const response = await axios.get('https://api.rajaongkir.com/starter/city', {
-            headers: { key: RAJAONGKIR_API_KEY },
-            timeout: 4000
-        });
-
-        res.status(200).json({
-            success: true,
-            data: response.data.rajaongkir.results
-        });
-    } catch (error) {
-        console.warn('RajaOngkir API gagal/timeout, mengalihkan ke data kota default:', error.message);
-        res.status(200).json({ success: true, data: DUMMY_CITIES });
-    }
-});
-
+// Endpoint Cek Ongkir Kurir Instan (Gojek / Grab) via Biteship
 app.post('/api/check-ongkir', async (req, res) => {
     try {
-        const { destinationCityId, weight, courier } = req.body;
+        const { originLatitude, originLongitude, destinationLatitude, destinationLongitude, items } = req.body;
 
-        if (!destinationCityId) {
-            return res.status(400).json({ success: false, message: 'Kota tujuan harus dipilih' });
+        if (!destinationLatitude || !destinationLongitude) {
+            return res.status(400).json({ success: false, message: 'Koordinat lokasi tujuan belum lengkap' });
         }
 
-        const totalWeight = Number(weight) || 1000;
-        const totalKg = Math.ceil(totalWeight / 1000) || 1;
-        const courierCode = (courier || 'jne').toLowerCase();
-
-        if (!RAJAONGKIR_API_KEY) {
-            const baseRate = 15000;
-            const calculatedCost = totalKg * baseRate;
-
+        // Jika API Key Biteship belum diset di .env, berikan data fallback simulasi instan
+        if (!BITESHIP_API_KEY) {
             return res.status(200).json({
                 success: true,
                 costs: [
                     {
-                        service: 'REG',
-                        description: `Layanan Reguler Standard (${totalWeight}g / ${totalKg} Kg)`,
-                        cost: [{ value: calculatedCost, etd: '2-3', note: '' }]
+                        courier_name: 'Gojek',
+                        service_type: 'instant',
+                        description: 'GoSend Instant (Estimasi 1-3 Jam)',
+                        price: 25000,
+                        etd: '1-3 hours'
                     },
                     {
-                        service: 'YES',
-                        description: `Yakin Esok Sampai (${totalWeight}g / ${totalKg} Kg)`,
-                        cost: [{ value: calculatedCost + 12000, etd: '1-1', note: '' }]
+                        courier_name: 'Grab',
+                        service_type: 'instant',
+                        description: 'GrabExpress Instant (Estimasi 1-3 Jam)',
+                        price: 24000,
+                        etd: '1-3 hours'
                     }
                 ]
             });
         }
 
-        const response = await axios.post('https://api.rajaongkir.com/starter/cost', {
-            origin: process.env.ORIGIN_CITY_ID || ORIGIN_CITY_ID,
-            destination: destinationCityId,
-            weight: totalWeight,
-            courier: courierCode
+        // Request langsung ke Biteship API untuk kurir gojek & grab
+        const response = await axios.post('https://api.biteship.com/v1/rates/couriers', {
+            origin_latitude: originLatitude || Number(process.env.ORIGIN_LATITUDE) || -6.175110,
+            origin_longitude: originLongitude || Number(process.env.ORIGIN_LONGITUDE) || 106.865039,
+            destination_latitude: destinationLatitude,
+            destination_longitude: destinationLongitude,
+            couriers: 'gojek,grab', // Hanya memanggil kurir Gojek dan Grab
+            items: items || [{ name: 'Barang Belanjaan', value: 50000, quantity: 1, weight: 1000 }]
         }, {
-            headers: { key: RAJAONGKIR_API_KEY },
-            timeout: 4000 
+            headers: {
+                'Authorization': `Bearer ${BITESHIP_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 8000
         });
 
-        const results = response.data.rajaongkir.results[0].costs;
         res.status(200).json({
             success: true,
-            costs: results
+            pricing: response.data.pricing
         });
     } catch (error) {
-        console.warn('Gagal/Timeout saat memuat ongkir dari RajaOngkir:', error.message);
-        
-        const totalWeight = Number(req.body.weight) || 1000;
-        const totalKg = Math.ceil(totalWeight / 1000) || 1;
-        const baseRate = 16000;
-        
-        const fallbackCostReg = baseRate * totalKg;
-        const fallbackCostYes = (baseRate + 12000) * totalKg;
-
-        res.status(200).json({
-            success: true,
-            costs: [
-                {
-                    service: 'REG',
-                    description: `Layanan Reguler - ${totalWeight}g (${totalKg} Kg) (Estimasi Lokal)`,
-                    cost: [{ value: fallbackCostReg, etd: '2-3', note: '' }]
-                },
-                {
-                    service: 'YES',
-                    description: `Yakin Esok Sampai - ${totalWeight}g (${totalKg} Kg) (Estimasi Lokal)`,
-                    cost: [{ value: fallbackCostYes, etd: '1', note: '' }]
-                }
-            ]
+        console.warn('Gagal memuat tarif kurir dari Biteship:', error.response?.data || error.message);
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.error || error.message
         });
     }
 });
@@ -583,6 +574,9 @@ app.post('/api/orders', async (req, res) => {
             }
         }
 
+        // PANCARKAN REAL-TIME NOTIFIKASI KE ADMIN
+        io.emit('new_order_notification', savedOrder);
+
         res.status(201).json({ success: true, data: savedOrder });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -625,7 +619,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
 app.delete('/api/orders/:id', async (req, res) => {
     try {
         await Order.findByIdAndDelete(req.params.id);
-        // Data transaksi keuangan TIDAK ikut dihapus di sini, sehingga laporan aman!
         res.status(200).json({ success: true, message: 'Pesanan dihapus' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -633,7 +626,7 @@ app.delete('/api/orders/:id', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// ENDPOINT LAPORAN KEUANGAN (MENGAMBIL DARI TABEL TRANSAKSI MANDIRI)
+// ENDPOINT LAPORAN KEUANGAN
 // -------------------------------------------------------------
 app.get('/api/financial-report', async (req, res) => {
     try {
@@ -655,6 +648,7 @@ app.get('/api/financial-report', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+// HARUS menggunakan server.listen agar Socket.io berfungsi dengan Express
+server.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
 });
