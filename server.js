@@ -16,7 +16,7 @@ const Product = require('./models/Product');
 const Order = require('./models/Order'); // Model MongoDB untuk Pesanan
 const Banner = require('./models/Banner'); // Model MongoDB untuk Banner & Video Promosi
 const Transaction = require('./models/Transaction'); // MODEL: Untuk Laporan Keuangan Independen
-const Chat = require('./models/chat'); // MODEL: Untuk Live Chat
+const Chat = require('./models/Chat'); // DIPERBAIKI: Disesuaikan menjadi huruf kapital 'Chat' agar sesuai dengan nama file aslinya
 
 const app = express();
 const server = http.createServer(app); // Menggabungkan Express dengan HTTP Server
