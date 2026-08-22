@@ -16,7 +16,22 @@ const Product = require('./models/Product');
 const Order = require('./models/Order'); // Model MongoDB untuk Pesanan
 const Banner = require('./models/Banner'); // Model MongoDB untuk Banner & Video Promosi
 const Transaction = require('./models/Transaction'); // MODEL: Untuk Laporan Keuangan Independen
-const Chat = require('./models/Chat'); // DIPERBAIKI: Disesuaikan menjadi huruf kapital 'Chat' agar sesuai dengan nama file aslinya
+const Chat = require('./models/Chat'); // MODEL: Untuk Live Chat
+
+// -------------------------------------------------------------
+// MODEL MONGODB: REVIEW / ULASAN PRODUK
+// -------------------------------------------------------------
+const mongoose = require('mongoose');
+const reviewSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.Mixed, required: true }, // Menggunakan Mixed agar fleksibel mendukung ObjectId atau String
+    productName: { type: String, default: 'Produk Mainan' },
+    customerName: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true },
+    adminReply: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now }
+});
+const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema);
 
 const app = express();
 const server = http.createServer(app); // Menggabungkan Express dengan HTTP Server
@@ -65,32 +80,201 @@ app.get('/', (req, res) => {
 });
 
 // -------------------------------------------------------------
-// FITUR LIVE CHAT (SOCKET.IO)
+// FITUR ULASAN PRODUK API (MONGODB STORAGE & ADMIN CONTROL)
+// -------------------------------------------------------------
+
+// Endpoint GET: Ambil seluruh ulasan atau filter berdasarkan productId query (?productId=...)
+app.get('/api/reviews', async (req, res) => {
+    try {
+        const { productId } = req.query;
+        let query = {};
+        if (productId) {
+            let queryId = productId;
+            try {
+                if (mongoose.Types.ObjectId.isValid(productId)) {
+                    queryId = new mongoose.Types.ObjectId(productId);
+                }
+            } catch (e) {}
+
+            query = {
+                $or: [
+                    { productId: queryId },
+                    { productId: productId }
+                ]
+            };
+        }
+        const reviews = await Review.find(query).populate('productId', 'name image category').sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: reviews });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint GET: Ambil ulasan berdasarkan ID produk tertentu di URL parameter
+app.get('/api/reviews/product/:productId', async (req, res) => {
+    try {
+        const { productId } = req.params;
+        let queryId = productId;
+        try {
+            if (mongoose.Types.ObjectId.isValid(productId)) {
+                queryId = new mongoose.Types.ObjectId(productId);
+            }
+        } catch (e) {}
+
+        const reviews = await Review.find({ 
+            $or: [
+                { productId: queryId },
+                { productId: productId }
+            ]
+        }).sort({ createdAt: -1 });
+        
+        res.status(200).json({ success: true, data: reviews });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint POST: Kirim ulasan baru dari pelanggan
+app.post('/api/reviews', async (req, res) => {
+    try {
+        const { productId, productName, customerName, rating, comment } = req.body;
+        if (!productId || !customerName || !comment) {
+            return res.status(400).json({ success: false, message: 'Data ulasan tidak lengkap' });
+        }
+        const newReview = new Review({ 
+            productId, 
+            productName: productName || 'Produk Mainan',
+            customerName, 
+            rating: Number(rating) || 5, 
+            comment 
+        });
+        const savedReview = await newReview.save();
+        
+        // Kirim notifikasi real-time via Socket.io ke admin dashboard
+        io.emit('new_review_notification', savedReview);
+
+        res.status(201).json({ success: true, data: savedReview });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint PUT: Admin membalas ulasan pelanggan
+app.put('/api/reviews/:id/reply', async (req, res) => {
+    try {
+        const { adminReply } = req.body;
+        const updatedReview = await Review.findByIdAndUpdate(
+            req.params.id,
+            { adminReply: adminReply || '' },
+            { returnDocument: 'after' }
+        );
+        if (!updatedReview) {
+            return res.status(404).json({ success: false, message: 'Ulasan tidak ditemukan' });
+        }
+        res.status(200).json({ success: true, data: updatedReview });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint DELETE: Hapus ulasan oleh Admin berdasarkan ID Review
+app.delete('/api/reviews/:id', async (req, res) => {
+    try {
+        const deletedReview = await Review.findByIdAndDelete(req.params.id);
+        if (!deletedReview) {
+            return res.status(404).json({ success: false, message: 'Ulasan tidak ditemukan' });
+        }
+        res.status(200).json({ success: true, message: 'Ulasan berhasil dihapus oleh admin' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// -------------------------------------------------------------
+// FITUR LIVE CHAT API (MONGODB STORAGE)
+// -------------------------------------------------------------
+app.get('/api/chats', async (req, res) => {
+    try {
+        const { room } = req.query;
+        let query = {};
+        if (room) {
+            query.room = room.trim();
+        }
+        const chats = await Chat.find(query).sort({ timestamp: 1 });
+        res.status(200).json({ success: true, data: chats });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// -------------------------------------------------------------
+// FITUR LIVE CHAT (SOCKET.IO) - TERINTEGRASI MONGODB (DENGAN EDIT & HAPUS)
 // -------------------------------------------------------------
 io.on('connection', (socket) => {
     console.log('User terhubung ke Live Chat dengan ID:', socket.id);
 
-    // Kirim riwayat pesan lama saat user pertama kali buka chat
-    Chat.find().sort({ timestamp: 1 }).limit(50) // Ambil 50 pesan terakhir
-        .then(messages => {
-            socket.emit('load_old_messages', messages);
-        })
-        .catch(err => console.error('Gagal memuat riwayat pesan:', err));
+    socket.on('join_room', (room) => {
+        if (room) {
+            const cleanRoom = room.trim();
+            socket.join(cleanRoom);
+            console.log(`Socket ${socket.id} bergabung ke room: ${cleanRoom}`);
+        }
+    });
 
-    // Tangkap pesan baru dari frontend
     socket.on('send_message', async (data) => {
         try {
-            // Simpan ke database
+            const senderName = (data.sender || 'Customer').trim();
+            const roomName = (data.room || (senderName === 'Admin' ? 'General' : senderName)).trim();
+
             const newChat = new Chat({
-                sender: data.sender || 'Customer',
+                sender: senderName,
+                room: roomName,
                 message: data.message
             });
-            await newChat.save();
+            const savedChat = await newChat.save();
 
-            // Pancarkan pesan ke semua orang yang terkoneksi (termasuk admin)
-            io.emit('receive_message', newChat);
+            io.to(roomName).emit('receive_message', savedChat);
+            io.emit('receive_message', savedChat);
         } catch (error) {
-            console.error('Gagal menyimpan pesan:', error);
+            console.error('Gagal menyimpan dan mengirim pesan chat:', error);
+        }
+    });
+
+    socket.on('edit_message', async (data) => {
+        try {
+            const { messageId, newMessage } = data;
+            const updatedChat = await Chat.findByIdAndUpdate(
+                messageId,
+                { message: newMessage, edited: true },
+                { returnDocument: 'after' }
+            );
+
+            if (updatedChat) {
+                const roomName = (updatedChat.room || '').trim();
+                if (roomName) {
+                    io.to(roomName).emit('message_updated', updatedChat);
+                }
+                io.emit('message_updated', updatedChat);
+            }
+        } catch (error) {
+            console.error('Gagal mengedit pesan chat:', error);
+        }
+    });
+
+    socket.on('delete_message', async (data) => {
+        try {
+            const { messageId } = data;
+            const deletedChat = await Chat.findByIdAndDelete(messageId);
+
+            if (deletedChat) {
+                const roomName = (deletedChat.room || '').trim();
+                if (roomName) {
+                    io.to(roomName).emit('message_deleted', messageId);
+                }
+                io.emit('message_deleted', messageId);
+            }
+        } catch (error) {
+            console.error('Gagal menghapus pesan chat:', error);
         }
     });
 
@@ -102,7 +286,6 @@ io.on('connection', (socket) => {
 // -------------------------------------------------------------
 // FITUR PEMBAYARAN XENDIT (CREATE INVOICE)
 // -------------------------------------------------------------
-
 app.post('/api/create-xendit-invoice', async (req, res) => {
     try {
         const { orderId, amount, customerEmail, customerName, description } = req.body;
@@ -178,7 +361,6 @@ app.get('/api/banners', async (req, res) => {
     }
 });
 
-// Endpoint POST: Tambah banner/video promosi baru ke MongoDB Atlas (Cloudinary URL)
 app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
     try {
         const { title, subtitle, badge, existingImages } = req.body;
@@ -223,7 +405,6 @@ app.post('/api/banners', upload.array('imageFile', 10), async (req, res) => {
     }
 });
 
-// Endpoint PUT: Memperbarui banner/video berdasarkan ID
 app.put('/api/banners/:id', upload.array('imageFile', 10), async (req, res) => {
     try {
         const { id } = req.params;
@@ -280,7 +461,6 @@ app.put('/api/banners/:id', upload.array('imageFile', 10), async (req, res) => {
     }
 });
 
-// Endpoint DELETE: Menghapus banner berdasarkan ID
 app.delete('/api/banners/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -311,7 +491,6 @@ app.delete('/api/banners/:id', async (req, res) => {
 // -------------------------------------------------------------
 const BITESHIP_API_KEY = process.env.BITESHIP_API_KEY || '';
 
-// Endpoint Cek Ongkir Kurir Instan (Gojek / Grab) via Biteship
 app.post('/api/check-ongkir', async (req, res) => {
     try {
         const { originLatitude, originLongitude, destinationLatitude, destinationLongitude, items } = req.body;
@@ -320,7 +499,6 @@ app.post('/api/check-ongkir', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Koordinat lokasi tujuan belum lengkap' });
         }
 
-        // Jika API Key Biteship belum diset di .env, berikan data fallback simulasi instan
         if (!BITESHIP_API_KEY) {
             return res.status(200).json({
                 success: true,
@@ -343,13 +521,12 @@ app.post('/api/check-ongkir', async (req, res) => {
             });
         }
 
-        // Request langsung ke Biteship API untuk kurir gojek & grab
         const response = await axios.post('https://api.biteship.com/v1/rates/couriers', {
             origin_latitude: originLatitude || Number(process.env.ORIGIN_LATITUDE) || -6.175110,
             origin_longitude: originLongitude || Number(process.env.ORIGIN_LONGITUDE) || 106.865039,
             destination_latitude: destinationLatitude,
             destination_longitude: destinationLongitude,
-            couriers: 'gojek,grab', // Hanya memanggil kurir Gojek dan Grab
+            couriers: 'gojek,grab',
             items: items || [{ name: 'Barang Belanjaan', value: 50000, quantity: 1, weight: 1000 }]
         }, {
             headers: {
@@ -375,164 +552,163 @@ app.post('/api/check-ongkir', async (req, res) => {
 // -------------------------------------------------------------
 // ENDPOINT PRODUK & PESANAN (DENGAN LAPORAN KEUANGAN MANDIRI)
 // -------------------------------------------------------------
-
 app.get('/api/products', async (req, res) => {
-  try {
-    const products = await Product.find();
-    res.status(200).json({
-      success: true,
-      count: products.length,
-      data: products
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+    try {
+        const products = await Product.find();
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            data: products
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
 });
 
 app.post('/api/products', upload.array('imageFile', 10), async (req, res) => {
-  try {
-    const { name, category, price, stock, weight, description } = req.body;
+    try {
+        const { name, category, price, stock, weight, description } = req.body;
 
-    const productData = {
-        name,
-        category: category || 'Action Figure',
-        price: Number(price) || 0,
-        stock: Number(stock) || 0,
-        weight: Number(weight) || 500,
-        description
-    };
+        const productData = {
+            name,
+            category: category || 'Action Figure',
+            price: Number(price) || 0,
+            stock: Number(stock) || 0,
+            weight: Number(weight) || 500,
+            description
+        };
 
-    if (req.files && req.files.length > 0) {
-      const imageUrls = req.files.map(file => file.path);
-      productData.images = imageUrls;
-      productData.image = imageUrls[0];
+        if (req.files && req.files.length > 0) {
+            const imageUrls = req.files.map(file => file.path);
+            productData.images = imageUrls;
+            productData.image = imageUrls[0];
+        }
+
+        const newProduct = new Product(productData);
+        const savedProduct = await newProduct.save();
+        
+        res.status(201).json({
+            success: true,
+            message: 'Produk berhasil ditambahkan',
+            data: savedProduct
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
     }
-
-    const newProduct = new Product(productData);
-    const savedProduct = await newProduct.save();
-    
-    res.status(201).json({
-      success: true,
-      message: 'Produk berhasil ditambahkan',
-      data: savedProduct
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
 });
 
 app.put('/api/products/:id', upload.array('imageFile', 10), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, category, price, stock, weight, description, existingImages } = req.body;
+    try {
+        const { id } = req.params;
+        const { name, category, price, stock, weight, description, existingImages } = req.body;
 
-    let images = [];
+        let images = [];
 
-    if (existingImages) {
-        try {
-            images = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
-        } catch (e) {
-            images = [];
+        if (existingImages) {
+            try {
+                images = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
+            } catch (e) {
+                images = [];
+            }
         }
+
+        if (req.files && req.files.length > 0) {
+            const newImageUrls = req.files.map(file => file.path);
+            images = images.concat(newImageUrls);
+        }
+
+        const primaryImage = images[0] || '';
+
+        const updateData = {
+            name,
+            category,
+            price: Number(price),
+            stock: Number(stock),
+            weight: Number(weight) || 500,
+            description,
+            image: primaryImage,
+            images: images.length > 0 ? images : [primaryImage]
+        };
+
+        const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
+            returnDocument: 'after',
+            runValidators: true
+        });
+
+        if (!updatedProduct) {
+            return res.status(404).json({
+                success: false,
+                message: 'Produk tidak ditemukan'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Produk berhasil diperbarui',
+            data: updatedProduct
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
     }
-
-    if (req.files && req.files.length > 0) {
-      const newImageUrls = req.files.map(file => file.path);
-      images = images.concat(newImageUrls);
-    }
-
-    const primaryImage = images[0] || '';
-
-    const updateData = {
-        name,
-        category,
-        price: Number(price),
-        stock: Number(stock),
-        weight: Number(weight) || 500,
-        description,
-        image: primaryImage,
-        images: images.length > 0 ? images : [primaryImage]
-    };
-
-    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
-      returnDocument: 'after',
-      runValidators: true
-    });
-
-    if (!updatedProduct) {
-      return res.status(404).json({
-        success: false,
-        message: 'Produk tidak ditemukan'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Produk berhasil diperbarui',
-      data: updatedProduct
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
 });
 
 app.put('/api/products/:id/reduce-stock', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { quantity } = req.body;
+    try {
+        const { id } = req.params;
+        const { quantity } = req.body;
 
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Produk tidak ditemukan'
-      });
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Produk tidak ditemukan'
+            });
+        }
+
+        const reduceQty = Number(quantity) || 1;
+        if (product.stock < reduceQty) {
+            return res.status(400).json({
+                success: false,
+                message: 'Stok tidak mencukupi'
+            });
+        }
+
+        product.stock -= reduceQty;
+        await product.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Stok berhasil dikurangi',
+            data: product
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
-
-    const reduceQty = Number(quantity) || 1;
-    if (product.stock < reduceQty) {
-      return res.status(400).json({
-        success: false,
-        message: 'Stok tidak mencukupi'
-      });
-    }
-
-    product.stock -= reduceQty;
-    await product.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Stok berhasil dikurangi',
-      data: product
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedProduct = await Product.findByIdAndDelete(id);
-    if (!deletedProduct) {
-      return res.status(404).json({ success: false, message: 'Produk tidak ditemukan' });
+    try {
+        const { id } = req.params;
+        const deletedProduct = await Product.findByIdAndDelete(id);
+        if (!deletedProduct) {
+            return res.status(404).json({ success: false, message: 'Produk tidak ditemukan' });
+        }
+        res.status(200).json({ success: true, message: 'Produk berhasil dihapus' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
-    res.status(200).json({ success: true, message: 'Produk berhasil dihapus' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
 });
 
 app.get('/api/orders', async (req, res) => {
@@ -561,7 +737,6 @@ app.post('/api/orders', async (req, res) => {
         const newOrder = new Order({ orderId, customer, items, subtotal, ongkir, totalAmount, status });
         const savedOrder = await newOrder.save();
         
-        // Jika pesanan langsung dibuat dengan status Selesai
         if (status === 'Selesai') {
             const existingTx = await Transaction.findOne({ orderId: savedOrder.orderId });
             if (!existingTx) {
@@ -574,7 +749,6 @@ app.post('/api/orders', async (req, res) => {
             }
         }
 
-        // PANCARKAN REAL-TIME NOTIFIKASI KE ADMIN
         io.emit('new_order_notification', savedOrder);
 
         res.status(201).json({ success: true, data: savedOrder });
@@ -583,7 +757,6 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// UPDATE STATUS PESANAN (Mencatat ke Transaction jika status "Selesai")
 app.put('/api/orders/:id/status', async (req, res) => {
     try {
         const { status } = req.body;
@@ -597,7 +770,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan' });
         }
 
-        // JIKA STATUS BERUBAH MENJADI SELESAI, CATAT KE TABEL TRANSAKSI KEUANGAN
         if (status === 'Selesai') {
             const existingTx = await Transaction.findOne({ orderId: updatedOrder.orderId });
             if (!existingTx) {

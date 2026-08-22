@@ -26,11 +26,6 @@
                 radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
             background-attachment: fixed;
         }
-        .sortable-ghost {
-            opacity: 0.4;
-            background: #e0e7ff !important;
-            border: 2px dashed #6366f1 !important;
-        }
         .overflow-x-auto::-webkit-scrollbar {
             height: 6px;
         }
@@ -134,6 +129,37 @@
                     </thead>
                     <tbody id="admin-product-table" class="text-xs divide-y divide-slate-100">
                         <tr><td colspan="8" class="text-center py-8 text-slate-400">Memuat data produk...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 1.5: MANAJEMEN REVIEW PRODUK PELANGGAN -->
+        <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
+                <div>
+                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">⭐ Manajemen Review & Ulasan Pelanggan</h2>
+                    <p class="text-xs text-slate-500 mt-1">Pantau ulasan, rating bintang, balas ulasan pelanggan, atau hapus review yang tidak sesuai.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="review-count-badge" class="text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 px-3.5 py-2 rounded-xl">0 Ulasan</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th class="py-3 px-4">Pelanggan</th>
+                            <th class="py-3 px-4">Produk</th>
+                            <th class="py-3 px-4">Rating</th>
+                            <th class="py-3 px-4">Ulasan</th>
+                            <th class="py-3 px-4">Balasan Admin</th>
+                            <th class="py-3 px-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-reviews-table" class="text-xs divide-y divide-slate-100">
+                        <tr><td colspan="6" class="text-center py-6 text-slate-400">Memuat data ulasan pelanggan...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -367,28 +393,49 @@
         </div>
     </div>
 
-    <!-- KOMPONEN LIVE CHAT MELAYANG (ADMIN) -->
+    <!-- KOMPONEN LIVE CHAT MELAYANG (ADMIN MULTI-CUSTOMER) -->
     <div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         <!-- Jendela Chat -->
-        <div id="chat-window" class="hidden w-72 sm:w-80 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-4 border border-slate-200 transition-all duration-300">
+        <div id="chat-window" class="hidden w-[420px] sm:w-[540px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-4 border border-slate-200 transition-all duration-300">
             <!-- Header Chat -->
             <div class="bg-indigo-600 px-4 py-3 flex justify-between items-center text-white">
-                <span class="font-bold text-sm flex items-center gap-2 tracking-wide">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"></path></svg>
-                    Pesan Pelanggan
-                </span>
-                <button onclick="toggleChat()" class="text-white hover:text-indigo-200 transition">✕</button>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-sm flex items-center gap-2 tracking-wide">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"></path></svg>
+                        Pesan Masuk Pelanggan (Live Chat)
+                    </span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="resetHiddenRooms()" title="Munculkan kembali semua chat yang dihapus" class="text-[10px] bg-indigo-700 hover:bg-indigo-800 text-white px-2 py-1 rounded transition">Reset Chat Tersembunyi</button>
+                    <button onclick="toggleChat()" class="text-white hover:text-indigo-200 transition font-bold">✕</button>
+                </div>
             </div>
             
-            <!-- Ruang Pesan -->
-            <div id="chat-messages" class="h-64 sm:h-72 overflow-y-auto p-4 space-y-3 bg-slate-50 text-xs flex flex-col scroll-smooth">
-                <!-- Chat akan dimuat di sini oleh JavaScript -->
-            </div>
-            
-            <!-- Form Input Pesan -->
-            <div class="p-3 border-t border-slate-200 bg-white flex gap-2">
-                <input type="text" id="chat-input" placeholder="Balas pesan pelanggan..." class="flex-1 bg-slate-100 border-none rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50" onkeypress="handleChatKeyPress(event)">
-                <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20">Kirim</button>
+            <!-- Isi Chat (Terbagi Daftar Kontak & Ruang Chat) -->
+            <div class="flex h-80 sm:h-96 bg-slate-50 text-xs">
+                <!-- Kolom Kiri: Daftar Pelanggan (Room) -->
+                <div id="chat-contacts" class="w-2/5 border-r border-slate-200 overflow-y-auto bg-white divide-y divide-slate-100">
+                    <div class="p-3 text-[10px] text-slate-400 font-bold uppercase text-center">Memuat Kontak...</div>
+                </div>
+
+                <!-- Kolom Kanan: Ruang Pesan Personal -->
+                <div class="w-3/5 flex flex-col bg-slate-50">
+                    <!-- Header Ruang Aktif -->
+                    <div id="active-chat-header" class="bg-slate-100 px-3 py-2 border-b border-slate-200 font-bold text-slate-700 text-[11px] truncate">
+                        Pilih Pelanggan
+                    </div>
+
+                    <!-- Ruang Pesan -->
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 flex flex-col scroll-smooth">
+                        <div class="text-slate-400 text-center my-auto text-[11px]">Pilih salah satu pelanggan di sebelah kiri untuk membalas pesan.</div>
+                    </div>
+
+                    <!-- Form Input Pesan -->
+                    <div class="p-2.5 border-t border-slate-200 bg-white flex gap-1.5">
+                        <input type="text" id="chat-input" placeholder="Ketik balasan..." class="flex-1 bg-slate-100 border-none rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50" onkeypress="handleChatKeyPress(event)" disabled>
+                        <button id="send-chat-btn" onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-sm opacity-50 cursor-not-allowed" disabled>Kirim</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -409,18 +456,223 @@
     <!-- Script JavaScript Admin -->
     <script>
         // ==========================================
-        // KONFIGURASI SOCKET.IO & NOTIFIKASI REAL-TIME
+        // KONFIGURASI SOCKET.IO & LIVE CHAT MONGODB
         // ==========================================
-        const socket = io(); // Menghubungkan ke server Socket.io
+        const socket = io();
         const chatWindow = document.getElementById('chat-window');
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
         const chatBadge = document.getElementById('chat-badge');
+        const chatContacts = document.getElementById('chat-contacts');
+        const activeChatHeader = document.getElementById('active-chat-header');
         
         let unreadChatCount = 0;
-        const mySenderId = 'Admin';
+        let allChatMessages = [];
+        let activeCustomerRoom = null; 
+        let editingAdminMsgId = null; 
 
-        // Buka / Tutup Jendela Chat
+        // Array untuk menyimpan daftar room yang disembunyikan oleh admin
+        let hiddenRooms = JSON.parse(localStorage.getItem('tg_hidden_rooms') || '[]');
+
+        function resetHiddenRooms() {
+            if (!confirm("Munculkan kembali semua ruang chat yang sempat disembunyikan/dihapus dari daftar?")) return;
+            hiddenRooms = [];
+            localStorage.removeItem('tg_hidden_rooms');
+            renderContactsList();
+            alert("Daftar chat telah di-reset.");
+        }
+
+        // Ambil riwayat chat langsung dari MongoDB saat halaman dimuat
+        async function fetchChatHistory() {
+            try {
+                const response = await fetch('/api/chats');
+                const result = await response.json();
+                if (result.success) {
+                    allChatMessages = result.data || [];
+                    renderContactsList();
+                    if (activeCustomerRoom) {
+                        renderActiveChatRoom();
+                    }
+                }
+            } catch (error) {
+                console.error('Gagal mengambil riwayat chat dari MongoDB:', error);
+            }
+        }
+
+        function renderContactsList() {
+            const customerMap = {};
+            
+            allChatMessages.forEach(msg => {
+                // Gunakan 'room' atau 'sender' sebagai kunci unik ruang percakapan
+                const roomKey = (msg.room || msg.sender || '').trim();
+
+                if (roomKey && roomKey !== 'Admin' && !hiddenRooms.includes(roomKey)) {
+                    if (!customerMap[roomKey]) {
+                        customerMap[roomKey] = [];
+                    }
+                    customerMap[roomKey].push(msg);
+                }
+            });
+
+            const customers = Object.keys(customerMap);
+            chatContacts.innerHTML = '';
+
+            if (customers.length === 0) {
+                chatContacts.innerHTML = `<div class="p-4 text-slate-400 text-center text-[10px]">Belum ada pesan pelanggan atau semua chat disembunyikan.</div>`;
+                return;
+            }
+
+            customers.forEach(custRoom => {
+                const messages = customerMap[custRoom];
+                const lastMsg = messages[messages.length - 1];
+                const isActive = activeCustomerRoom === custRoom;
+                const activeClass = isActive ? 'bg-indigo-50 border-l-4 border-indigo-600 font-bold' : 'hover:bg-slate-50';
+                
+                const timeStr = lastMsg && (lastMsg.createdAt || lastMsg.timestamp) 
+                    ? new Date(lastMsg.createdAt || lastMsg.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) 
+                    : '';
+
+                let displayName = custRoom;
+                const firstCustomerMsg = messages.find(m => m.sender && m.sender !== 'Admin');
+                if (firstCustomerMsg && firstCustomerMsg.sender) {
+                    displayName = firstCustomerMsg.sender;
+                }
+
+                const safeCustId = custRoom.replace(/'/g, "\\'");
+
+                chatContacts.innerHTML += `
+                    <div class="flex items-center justify-between p-3 cursor-pointer transition ${activeClass} border-b border-slate-100 group">
+                        <div onclick="selectCustomerChat('${safeCustId}')" class="flex-1 min-w-0 pr-2">
+                            <div class="flex justify-between items-center gap-1">
+                                <div class="font-bold text-slate-900 truncate" title="${displayName}">${displayName}</div>
+                                <div class="text-[8px] font-semibold text-slate-400 whitespace-nowrap">${timeStr}</div>
+                            </div>
+                            <div class="text-[10px] text-slate-500 truncate mt-0.5" title="${lastMsg ? escapeHtml(lastMsg.message) : '-'}">${lastMsg ? escapeHtml(lastMsg.message) : '-'}</div>
+                        </div>
+                        <button onclick="deleteChatRoom(event, '${safeCustId}')" class="text-slate-300 hover:text-rose-600 p-1 opacity-0 group-hover:opacity-100 transition" title="Hapus Ruang Chat">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function deleteChatRoom(event, customerId) {
+            event.stopPropagation();
+            if (!confirm(`Hapus ruang chat dengan ${customerId} dari daftar? (Data riwayat tetap tersimpan aman di database MongoDB).`)) return;
+
+            if (!hiddenRooms.includes(customerId)) {
+                hiddenRooms.push(customerId);
+                localStorage.setItem('tg_hidden_rooms', JSON.stringify(hiddenRooms));
+            }
+
+            if (activeCustomerRoom === customerId) {
+                activeCustomerRoom = null;
+                activeChatHeader.innerText = 'Pilih Pelanggan';
+                chatMessages.innerHTML = `<div class="text-slate-400 text-center my-auto text-[11px]">Pilih salah satu pelanggan di sebelah kiri untuk membalas pesan.</div>`;
+                chatInput.disabled = true;
+                sendChatBtn.disabled = true;
+                sendChatBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            renderContactsList();
+        }
+
+        function selectCustomerChat(customerId) {
+            activeCustomerRoom = customerId.trim();
+            activeChatHeader.innerText = `Chat: ${activeCustomerRoom}`;
+            
+            chatInput.disabled = false;
+            sendChatBtn.disabled = false;
+            sendChatBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            
+            editingAdminMsgId = null;
+            chatInput.placeholder = "Ketik balasan...";
+            
+            socket.emit('join_room', activeCustomerRoom);
+
+            renderContactsList();
+            renderActiveChatRoom();
+            chatInput.focus();
+        }
+
+        function renderActiveChatRoom() {
+            chatMessages.innerHTML = '';
+            if (!activeCustomerRoom) {
+                chatMessages.innerHTML = `<div class="text-slate-400 text-center my-auto text-[11px]">Pilih salah satu pelanggan di sebelah kiri untuk membalas pesan.</div>`;
+                return;
+            }
+
+            const activeRoomClean = activeCustomerRoom.trim();
+            const filteredMsgs = allChatMessages.filter(m => {
+                const senderClean = (m.sender || '').trim();
+                const roomClean = (m.room || '').trim();
+                return senderClean === activeRoomClean || roomClean === activeRoomClean || (senderClean === 'Admin' && roomClean === activeRoomClean);
+            });
+
+            if (filteredMsgs.length === 0) {
+                chatMessages.innerHTML = `<div class="text-slate-400 text-center my-auto text-[11px]">Belum ada riwayat pesan dengan ${activeCustomerRoom}.</div>`;
+                return;
+            }
+
+            filteredMsgs.forEach(msg => {
+                const isMe = msg.sender === 'Admin';
+                const alignParent = isMe ? 'items-end' : 'items-start';
+                const bubbleColor = isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm';
+                const senderName = isMe ? 'Anda (Admin)' : (msg.sender || msg.room);
+                const nameColor = isMe ? 'text-indigo-500 text-right' : 'text-slate-500 text-left';
+
+                let timeString = '';
+                if (msg.createdAt || msg.timestamp) {
+                    const dateObj = new Date(msg.createdAt || msg.timestamp);
+                    const timeFmt = dateObj.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                    const dateFmt = dateObj.toLocaleDateString('id-ID', {day: 'numeric', month: 'short'});
+                    timeString = `${dateFmt} • ${timeFmt}`;
+                }
+
+                let actionButtonsHtml = '';
+                if (isMe && msg._id) {
+                    actionButtonsHtml = `
+                        <div class="flex items-center space-x-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] px-1 justify-end">
+                            <button onclick="startEditAdminMessage('${msg._id}', \`${escapeHtml(msg.message)}\`)" class="text-indigo-600 font-bold hover:underline">Edit</button>
+                            <span class="text-slate-300">•</span>
+                            <button onclick="deleteAdminChatMessage('${msg._id}')" class="text-rose-600 font-bold hover:underline">Hapus</button>
+                        </div>
+                    `;
+                }
+
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `max-w-[85%] flex flex-col ${alignParent} group`;
+                msgDiv.innerHTML = `
+                    <div class="flex items-center gap-2 mb-1 ${isMe ? 'flex-row-reverse' : ''}">
+                        <span class="text-[9px] ${nameColor} font-bold tracking-wider uppercase">${senderName}</span>
+                        <span class="text-[8px] text-slate-400 font-medium">${timeString}</span>
+                    </div>
+                    <div class="px-3.5 py-2 rounded-2xl shadow-sm leading-relaxed ${bubbleColor}">
+                        ${escapeHtml(msg.message)} ${msg.edited ? '<span class="text-[9px] opacity-70 italic ml-1">(diubah)</span>' : ''}
+                    </div>
+                    ${actionButtonsHtml}
+                `;
+                chatMessages.appendChild(msgDiv);
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function startEditAdminMessage(msgId, currentText) {
+            editingAdminMsgId = msgId;
+            chatInput.value = currentText;
+            chatInput.focus();
+            chatInput.placeholder = "Sedang mengedit balasan... (Enter / Kirim)";
+        }
+
+        fetchChatHistory();
+
         function toggleChat() {
             chatWindow.classList.toggle('hidden');
             if (!chatWindow.classList.contains('hidden')) {
@@ -428,42 +680,14 @@
                 chatBadge.classList.add('hidden');
                 chatBadge.innerText = '0';
                 document.title = 'TransGadget Admin — Toy Store Dashboard';
-                chatInput.focus();
-                scrollToBottomChat();
+                fetchChatHistory();
             }
         }
 
-        function scrollToBottomChat() {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function renderMessage(msg) {
-            const isMe = msg.sender === mySenderId;
-            const alignParent = isMe ? 'items-end' : 'items-start';
-            const bubbleColor = isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm';
-            const senderName = isMe ? 'Anda (Admin)' : msg.sender;
-            const nameColor = isMe ? 'text-indigo-400 text-right' : 'text-slate-500 text-left';
-
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `max-w-[85%] flex flex-col ${alignParent}`;
-            msgDiv.innerHTML = `
-                <span class="text-[9px] mb-0.5 ${nameColor} font-bold tracking-wider uppercase">${senderName}</span>
-                <div class="px-3.5 py-2 rounded-2xl shadow-sm leading-relaxed ${bubbleColor}">
-                    ${msg.message}
-                </div>
-            `;
-            chatMessages.appendChild(msgDiv);
-            scrollToBottomChat();
-        }
-
-        socket.on('load_old_messages', (messages) => {
-            chatMessages.innerHTML = '';
-            messages.forEach(msg => renderMessage(msg));
-        });
-
         socket.on('receive_message', (msg) => {
-            renderMessage(msg);
-            if (msg.sender !== mySenderId) {
+            fetchChatHistory();
+
+            if (msg.sender !== 'Admin') {
                 if (chatWindow.classList.contains('hidden')) {
                     unreadChatCount++;
                     chatBadge.classList.remove('hidden');
@@ -476,6 +700,14 @@
                     document.title = `(${unreadChatCount}) Pesan Baru Masuk!`;
                 }
             }
+        });
+
+        socket.on('message_updated', (updatedMsg) => {
+            fetchChatHistory();
+        });
+
+        socket.on('message_deleted', (deletedId) => {
+            fetchChatHistory();
         });
 
         // ==========================================
@@ -497,15 +729,157 @@
             fetchFinancialReport();
         });
 
+        // ==========================================
+        // FITUR MANAJEMEN REVIEW / ULASAN PELANGGAN
+        // ==========================================
+        let globalReviews = [];
+
+        async function fetchAdminReviews() {
+            const tbody = document.getElementById('admin-reviews-table');
+            const countBadge = document.getElementById('review-count-badge');
+            try {
+                const response = await fetch('/api/reviews');
+                if (!response.ok) {
+                    // Jika endpoint belum ada di backend, tampilkan pesan kosong yang ramah alih-alih error merah
+                    countBadge.innerText = `0 Ulasan`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada ulasan atau endpoint API /api/reviews belum diaktifkan di server backend.</td></tr>`;
+                    return;
+                }
+                const result = await response.json();
+                if (result.success) {
+                    globalReviews = result.data || [];
+                } else {
+                    globalReviews = [];
+                }
+
+                countBadge.innerText = `${globalReviews.length} Ulasan`;
+                tbody.innerHTML = '';
+
+                if (globalReviews.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada ulasan atau review produk dari pelanggan.</td></tr>`;
+                    return;
+                }
+
+                globalReviews.forEach((rev) => {
+                    const stars = '★'.repeat(rev.rating || 5) + '☆'.repeat(5 - (rev.rating || 5));
+                    const reviewDate = rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) : '-';
+                    const adminReply = rev.adminReply ? `<div class="mt-2 text-[11px] bg-indigo-50/80 p-2.5 rounded-xl border border-indigo-100 text-indigo-900"><b>Balasan Admin:</b> ${escapeHtml(rev.adminReply)}</div>` : `<div class="mt-2 text-[10px] text-slate-400 italic">Belum dibalas</div>`;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50/80 transition align-top">
+                            <td class="py-4 px-4">
+                                <div class="font-bold text-slate-900">${escapeHtml(rev.customerName || 'Pelanggan')}</div>
+                                <div class="text-[10px] text-slate-400">${reviewDate}</div>
+                            </td>
+                            <td class="py-4 px-4 font-semibold text-slate-800 max-w-[150px] truncate" title="${escapeHtml(rev.productName || 'Produk')}">
+                                ${escapeHtml(rev.productName || 'Produk')}
+                            </td>
+                            <td class="py-4 px-4 whitespace-nowrap">
+                                <span class="text-amber-500 font-bold tracking-wider text-sm">${stars}</span>
+                                <div class="text-[10px] text-slate-500 font-semibold">(${rev.rating}/5)</div>
+                            </td>
+                            <td class="py-4 px-4 max-w-[220px]">
+                                <p class="text-slate-700 leading-relaxed">${escapeHtml(rev.comment || '-')}</p>
+                                ${adminReply}
+                            </td>
+                            <td class="py-4 px-4 text-center whitespace-nowrap">
+                                <button onclick="openReviewReplyModal('${rev._id}', \`${escapeHtml(rev.adminReply || '')}\`)" class="bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 font-bold px-3 py-1.5 rounded-xl transition">
+                                    ${rev.adminReply ? 'Edit Balasan' : 'Balas'}
+                                </button>
+                            </td>
+                            <td class="py-4 px-4 text-center whitespace-nowrap">
+                                <button onclick="deleteReview('${rev._id}')" class="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.warn('Endpoint /api/reviews belum tersedia di backend:', error);
+                countBadge.innerText = `0 Ulasan`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada ulasan atau endpoint API /api/reviews belum diaktifkan di server backend.</td></tr>`;
+            }
+        }
+
+        function openReviewReplyModal(reviewId, currentReply) {
+            const replyText = prompt("Masukkan balasan resmi dari Admin untuk ulasan ini:", currentReply);
+            if (replyText === null) return; 
+
+            submitAdminReviewReply(reviewId, replyText.trim());
+        }
+
+        async function submitAdminReviewReply(reviewId, replyText) {
+            try {
+                const response = await fetch(`/api/reviews/${reviewId}/reply`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminReply: replyText })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Balasan ulasan berhasil disimpan!');
+                    fetchAdminReviews();
+                } else {
+                    alert(result.message || 'Gagal menyimpan balasan.');
+                }
+            } catch (error) {
+                console.error('Error replying review:', error);
+                alert('Terjadi kesalahan koneksi.');
+            }
+        }
+
+        async function deleteReview(reviewId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus ulasan pelanggan ini?')) return;
+            try {
+                const response = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert('Ulasan berhasil dihapus.');
+                    fetchAdminReviews();
+                } else {
+                    alert('Gagal menghapus ulasan.');
+                }
+            } catch (error) {
+                console.error('Error deleting review:', error);
+            }
+        }
+
+        socket.on('new_review_notification', (newReview) => {
+            console.log('Ulasan baru diterima:', newReview);
+            fetchAdminReviews();
+        });
+
         function sendChatMessage() {
             const text = chatInput.value.trim();
-            if (!text) return;
-            socket.emit('send_message', {
-                sender: mySenderId,
-                message: text
-            });
+            if (!text || !activeCustomerRoom) {
+                alert('Pilih pelanggan terlebih dahulu di kolom sebelah kiri.');
+                return;
+            }
+
+            const cleanRoom = activeCustomerRoom.trim();
+
+            if (editingAdminMsgId) {
+                socket.emit('edit_message', {
+                    messageId: editingAdminMsgId,
+                    newMessage: text
+                });
+                editingAdminMsgId = null;
+                chatInput.placeholder = "Ketik balasan...";
+            } else {
+                socket.emit('send_message', {
+                    sender: 'Admin',
+                    room: cleanRoom,
+                    message: text
+                });
+            }
+
             chatInput.value = '';
             chatInput.focus();
+        }
+
+        function deleteAdminChatMessage(msgId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus pesan ini?')) return;
+            socket.emit('delete_message', { messageId: msgId });
         }
 
         function handleChatKeyPress(event) {
@@ -526,6 +900,7 @@
                 fetchAdminOrders();
                 fetchFinancialReport();
                 fetchAdminBanners();
+                fetchAdminReviews();
             }
         });
 
@@ -1185,7 +1560,6 @@
                 const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleString('id-ID') : '-';
                 const orderId = order.orderId || (order._id ? order._id.substring(0, 6) : '0000');
 
-                // Pemetaan data customer yang mendalam agar kompatibel dengan data MongoDB lama & baru
                 const custName = (order.customer && order.customer.name) || order.customerName || order.name || 'Pelanggan TransGadget';
                 const custPhone = (order.customer && (order.customer.phone || order.customer.whatsapp)) || order.phone || order.customerPhone || '-';
                 const custAddress = (order.customer && order.customer.address) || order.address || '-';
@@ -1329,7 +1703,7 @@
             fetchFinancialReport();
         }
 
-        function exportOrdersToExcel() {
+        exportOrdersToExcel = function() {
             if (globalOrders.length === 0) return alert('Tidak ada data pesanan.');
             const data = globalOrders.map(o => {
                 const amount = Number(o.totalAmount || o.total || 0);
@@ -1351,7 +1725,7 @@
             XLSX.writeFile(wb, "laporan_pesanan.xlsx");
         }
 
-        function exportFinancialReportExcel() {
+        exportFinancialReportExcel = function() {
             if (globalTransactions.length === 0) return alert('Tidak ada data keuangan.');
             const data = globalTransactions.map(tx => {
                 return {
