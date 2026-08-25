@@ -64,8 +64,8 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: 'transgadget_uploads', // Nama folder penampung di Cloudinary Anda
-        allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'mp4'],
-        resource_type: 'auto' // Mendukung gambar maupun video (untuk banner)
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'],
+        resource_type: 'auto' // Mendukung gambar maupun video (untuk banner dan produk)
     }
 });
 
