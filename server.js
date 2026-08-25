@@ -38,6 +38,7 @@ const server = http.createServer(app); // Menggabungkan Express dengan HTTP Serv
 const io = new Server(server); // Inisialisasi Socket.io di dalam server
 
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 // Config Xendit SDK Initialization
 const xenditInstance = new Xendit({
@@ -50,6 +51,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Menyediakan akses folder publik agar file statis lain tetap bisa diakses dari browser
 app.use(express.static('public'));
+
+// Untuk sitemap.xml
+app.use(express.static(path.join(__dirname, 'public')));
 
 // -------------------------------------------------------------
 // KONFIGURASI CLOUDINARY & MULTER STORAGE
@@ -299,8 +303,8 @@ app.post('/api/create-xendit-invoice', async (req, res) => {
                 customer: {
                     givenNames: customerName || 'Pelanggan TransGadget'
                 },
-                successRedirectUrl: `${req.protocol}://${req.get('host')}/customer.html?status=success`,
-                failureRedirectUrl: `${req.protocol}://${req.get('host')}/customer.html?status=failed`,
+                successRedirectUrl: `${BASE_URL}/customer.html?status=success`,
+                failureRedirectUrl: `${BASE_URL}/customer.html?status=failed`,
             }
         });
 
@@ -822,5 +826,5 @@ app.get('/api/financial-report', async (req, res) => {
 
 // HARUS menggunakan server.listen agar Socket.io berfungsi dengan Express
 server.listen(PORT, () => {
-    console.log(`Server berjalan di http://localhost:${PORT}`);
+    console.log(`Server berjalan di ${BASE_URL}`);
 });
