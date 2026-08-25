@@ -25,7 +25,7 @@
         <!-- Logo & Branding -->
         <div class="text-center mb-8 flex flex-col items-center">
             <!-- Gambar Logo TransGadget -->
-            <img src="/images/logo.png" alt="TransGadget Logo" class="h-20 w-auto object-contain drop-shadow-md mb-2">
+            <img src="/images/logo.png" alt="TransGadget Logo" class="h-20 w-auto object-contain drop-shadow-md mb-2" onerror="this.style.display='none'">
             <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">TransGadget Admin</h1>
             <p class="text-xs text-slate-500 font-medium">Masuk untuk mengelola katalog produk & pesanan</p>
         </div>
@@ -91,7 +91,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const isAuth = localStorage.getItem('tg_admin_session') || sessionStorage.getItem('tg_admin_session');
             if (isAuth === 'true') {
-                window.location.href = '/index.html'; // Redirect otomatis ke Dashboard index.html
+                window.location.href = '/admin-dashboard.html'; // Diperbaiki ke dashboard admin
             }
         });
 
@@ -129,17 +129,17 @@
 
                 const result = await response.json();
 
-                if (result.success) {
+                if (response.ok && result.success) {
                     saveSession(rememberMe);
-                    window.location.href = '/index.html'; // Redirect ke Dashboard index.html
+                    window.location.href = '/admin-dashboard.html'; // Diperbaiki ke dashboard admin
                 } else {
                     showError(result.message || 'Username atau password salah!');
                 }
             } catch (err) {
-                // Fallback verifikasi lokal jika server belum terhubung
+                // Fallback verifikasi lokal (Default: admin / admin123)
                 if (usernameInput === 'admin' && passwordInput === 'admin123') {
                     saveSession(rememberMe);
-                    window.location.href = '/index.html'; // Redirect ke Dashboard index.html
+                    window.location.href = '/admin-dashboard.html'; // Diperbaiki ke dashboard admin
                 } else {
                     showError('Username atau password salah! (Default: admin / admin123)');
                 }
