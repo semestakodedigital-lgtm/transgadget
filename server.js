@@ -163,6 +163,12 @@ app.post('/api/reviews', async (req, res) => {
     }
 });
 
+// get sitemap.xml
+app.get('/sitemap.xml', (req, res) => {
+    res.setHeader('Content-Type', 'application/xml');
+    res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+});
+
 // Endpoint PUT: Admin membalas ulasan pelanggan
 app.put('/api/reviews/:id/reply', async (req, res) => {
     try {
