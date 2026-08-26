@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransGadget.Indonesia</title>
+    <title>TransGadget Indonesia - Official Website</title>
+    <meta name="description" content="Selling Transformers Toys & Action Figures.">
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +16,7 @@
     <!-- Socket.IO Client Library -->
     <script src="/socket.io/socket.io.js"></script>
 
-    <!-- Ganti href sesuai lokasi penyimpanan file logo Anda yang sebenarnya -->
+    <!-- Logo Web (Favicon) -->
     <link rel="icon" type="image/png" href="/images/logo.png">
     
     <style>
@@ -541,7 +543,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div class="space-y-2 sm:space-y-3">
                 <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">TransGadget Indonesia</span>
-                <p class="text-slate-500 leading-relaxed">Official Toy Collector Space terlengkap dengan pilihan Kurir Instan dan JNE Express.</p>
+                <p class="text-slate-500 leading-relaxed">Website Official TransGadget Indonesia.</p>
             </div>
             <div class="space-y-2 sm:space-y-3">
                 <h4 class="font-bold text-slate-900 uppercase tracking-wider text-[11px] sm:text-xs border-b border-slate-200 pb-1.5 sm:pb-2">📍 Alamat Toko</h4>
@@ -622,7 +624,7 @@
                 unreadChatCount = 0;
                 chatBadge.classList.add('hidden');
                 chatBadge.innerText = '0';
-                document.title = 'TransGadget.Indonesia';
+                document.title = 'TransGadget.Indonesia - Official Toy Collector Space';
                 chatInput.focus();
                 scrollToBottomChat();
                 fetchChatHistory();
@@ -1090,7 +1092,7 @@
                 imgEl.src = mediaUrl;
             }
 
-            document.getElementById('banner-title').innerText = banner.title || 'Official Toy Collector Space';
+            document.getElementById('banner-title').innerText = banner.title || 'Website Official TransGadget Indonesia';
             document.getElementById('banner-subtitle').innerText = banner.subtitle || 'Temukan koleksi mainan eksklusif Anda di sini.';
             document.getElementById('banner-badge').innerText = banner.badge || 'Promo';
             document.getElementById('banner-counter').innerText = `${currentBannerIndex + 1} / ${dynamicBanners.length}`;
