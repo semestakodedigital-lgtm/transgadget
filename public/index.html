@@ -19,6 +19,17 @@
     <!-- Logo Web (Favicon) -->
     <link rel="icon" type="image/png" href="/images/logo.png">
     
+    <!-- Schema Markup untuk Google Site Name -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "TransGadget Indonesia",
+      "alternateName": ["TransGadget Indonesia", "TransGadget.co.id"],
+      "url": "https://transgadget.co.id"
+    }
+    </script>
+    
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .transformer-bg {
@@ -929,7 +940,6 @@
             alert('Ulasan berhasil dikirim!');
         }
 
-        // FUNGSI RENDER ULASAN PRODUK YANG DINAMIS & MENDUKUNG BALASAN ADMIN
         async function renderProductReviewsForModal() {
             const container = document.getElementById('product-reviews-container');
             if (!container || !activeProduct) return;
