@@ -50,7 +50,7 @@
 
     <!-- Top Bar -->
     <div class="bg-slate-950 text-white text-[10px] sm:text-[11px] font-bold py-2.5 px-4 tracking-wider uppercase text-center shadow-sm">
-        🛡️ TransGadget Control Center • Admin Dashboard (Biteship Instant Enabled)
+        🛡️ TransGadget Control Center • Admin Dashboard
     </div>
 
     <!-- Main Header -->
@@ -64,9 +64,33 @@
                 <a href="/index.html" target="_blank" class="text-[11px] sm:text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 border border-indigo-100 px-3 sm:px-4 py-2 rounded-xl transition shadow-sm whitespace-nowrap">
                     Lihat Toko &rarr;
                 </a>
-                <button onclick="logoutAdmin()" class="text-[11px] sm:text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 border border-rose-200 px-3 sm:px-3.5 py-2 rounded-xl transition shadow-sm whitespace-nowrap">
-                    Logout 🚪
-                </button>
+                
+                <!-- Profil Layout Ala Facebook / Instagram (Avatar + Nama + Menu Dropdown) -->
+                <div class="relative">
+                    <button onclick="toggleAdminDropdown()" class="flex items-center space-x-2.5 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-3 py-1.5 rounded-2xl transition shadow-sm group">
+                        <div class="relative w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white font-extrabold text-xs flex items-center justify-center shadow-md overflow-hidden">
+                            <span id="admin-avatar-initial">A</span>
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                        </div>
+                        <span id="admin-profile-name" class="text-xs font-bold text-slate-800 max-w-[100px] sm:max-w-[130px] truncate">Admin</span>
+                        <svg class="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-700 transition" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+
+                    <!-- Dropdown Menu Profil -->
+                    <div id="admin-dropdown-menu" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+                        <div class="px-4 py-3 border-b border-slate-100">
+                            <p class="font-bold text-slate-900 truncate" id="dropdown-admin-name">Admin TransGadget</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Sesi Aktif • Online</p>
+                        </div>
+                        <button onclick="openAdminSettingsModal()" class="w-full text-left px-4 py-2.5 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-semibold flex items-center space-x-2 transition">
+                            <span>⚙️ Pengaturan Akun & Password</span>
+                        </button>
+                        <div class="border-t border-slate-100 my-1"></div>
+                        <button onclick="logoutAdmin()" class="w-full text-left px-4 py-2.5 text-rose-600 hover:bg-rose-50 font-bold flex items-center space-x-2 transition">
+                            <span>🚪 Keluar (Logout)</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -111,9 +135,14 @@
                     <h2 class="text-base sm:text-xl font-extrabold text-slate-900">Daftar Produk Mainan</h2>
                     <p class="text-xs text-slate-500 mt-1">Kelola stok, harga, berat, foto, kategori, dan informasi mainan.</p>
                 </div>
-                <button onclick="openProductModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25 whitespace-nowrap">
-                    + Tambah Produk Baru
-                </button>
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <div class="relative w-full sm:w-64">
+                        <input type="text" id="admin-search-input" oninput="filterAdminProducts()" placeholder="Cari nama atau kategori..." class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
+                    </div>
+                    <button onclick="openProductModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-2xl transition shadow-lg shadow-indigo-600/25 whitespace-nowrap">
+                        + Tambah Produk Baru
+                    </button>
+                </div>
             </div>
 
             <div class="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
@@ -239,6 +268,34 @@
         </section>
 
     </main>
+
+    <!-- Modal Pengaturan Akun & Password Admin -->
+    <div id="admin-settings-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 py-6 text-center">
+            <div class="fixed inset-0 bg-slate-900/55 backdrop-blur-sm transition-opacity" onclick="closeAdminSettingsModal()"></div>
+            <div class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all align-middle max-w-md w-full p-6 sm:p-8 relative z-10 my-auto">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-base sm:text-lg font-extrabold text-slate-900">🔑 Pengaturan Akun & Password</h3>
+                    <button onclick="closeAdminSettingsModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm p-1">✕</button>
+                </div>
+                <form onsubmit="updateAdminCredentials(event)" class="space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Username Baru (Opsional)</label>
+                        <input type="text" id="admin-new-username" placeholder="Biarkan kosong jika tidak diubah" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Password Lama</label>
+                        <input type="password" id="admin-old-password" required placeholder="Masukkan password lama Anda" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Password Baru</label>
+                        <input type="password" id="admin-new-password" required placeholder="Masukkan password baru" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl uppercase tracking-wider transition shadow-lg shadow-indigo-600/25 mt-2">Perbarui Kredensial Admin</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Lightbox -->
     <div id="lightbox-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
@@ -478,6 +535,29 @@
         // Array untuk menyimpan daftar room yang disembunyikan oleh admin
         let hiddenRooms = JSON.parse(localStorage.getItem('tg_hidden_rooms') || '[]');
 
+        function toggleAdminDropdown() {
+            const menu = document.getElementById('admin-dropdown-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Tutup dropdown jika klik di luar
+        window.addEventListener('click', function(e) {
+            const menu = document.getElementById('admin-dropdown-menu');
+            const button = menu.previousElementSibling;
+            if (!menu.contains(e.target) && !button.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function openAdminSettingsModal() {
+            document.getElementById('admin-dropdown-menu').classList.add('hidden');
+            document.getElementById('admin-settings-modal').classList.remove('hidden');
+        }
+
+        function closeAdminSettingsModal() {
+            document.getElementById('admin-settings-modal').classList.add('hidden');
+        }
+
         function resetHiddenRooms() {
             if (!confirm("Munculkan kembali semua ruang chat yang sempat disembunyikan/dihapus dari daftar?")) return;
             hiddenRooms = [];
@@ -507,7 +587,6 @@
             const customerMap = {};
             
             allChatMessages.forEach(msg => {
-                // Gunakan 'room' atau 'sender' sebagai kunci unik ruang percakapan
                 const roomKey = (msg.room || msg.sender || '').trim();
 
                 if (roomKey && roomKey !== 'Admin' && !hiddenRooms.includes(roomKey)) {
@@ -891,7 +970,7 @@
         }
 
         // ==========================================
-        // LOGIKA ADMIN E-COMMERCE
+        // LOGIKA ADMIN E-COMMERCE & UPDATE KREDENSIAL
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
             const isAuth = localStorage.getItem('tg_admin_session') || sessionStorage.getItem('tg_admin_session');
@@ -903,8 +982,63 @@
                 fetchFinancialReport();
                 fetchAdminBanners();
                 fetchAdminReviews();
+                fetchAdminProfileBadge();
             }
         });
+
+        async function fetchAdminProfileBadge() {
+            try {
+                const response = await fetch('/api/admin/profile');
+                const result = await response.json();
+                if (result.success && result.data && result.data.length > 0) {
+                    const currentAdmin = result.data[0];
+                    const adminName = currentAdmin.name || currentAdmin.username || 'Admin';
+                    
+                    const nameEl = document.getElementById('admin-profile-name');
+                    const dropdownNameEl = document.getElementById('dropdown-admin-name');
+                    const initialEl = document.getElementById('admin-avatar-initial');
+
+                    if (nameEl) nameEl.innerText = adminName;
+                    if (dropdownNameEl) dropdownNameEl.innerText = adminName;
+                    if (initialEl) initialEl.innerText = adminName.charAt(0).toUpperCase();
+                }
+            } catch (error) {
+                console.error('Gagal memuat profil admin:', error);
+            }
+        }
+
+        async function updateAdminCredentials(event) {
+            event.preventDefault();
+            const newUsername = document.getElementById('admin-new-username').value.trim();
+            const oldPassword = document.getElementById('admin-old-password').value;
+            const newPassword = document.getElementById('admin-new-password').value;
+
+            try {
+                const response = await fetch('/api/admin/update-credentials', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        oldPassword,
+                        newPassword,
+                        newUsername: newUsername || undefined
+                    })
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    alert('Kredensial admin berhasil diperbarui!');
+                    document.getElementById('admin-old-password').value = '';
+                    document.getElementById('admin-new-password').value = '';
+                    document.getElementById('admin-new-username').value = '';
+                    closeAdminSettingsModal();
+                    fetchAdminProfileBadge();
+                } else {
+                    alert(result.message || result.error || 'Gagal memperbarui kredensial. Pastikan password lama Anda benar.');
+                }
+            } catch (error) {
+                console.error('Error updating admin credentials:', error);
+                alert('Terjadi kesalahan koneksi ke server.');
+            }
+        }
 
         function logoutAdmin() {
             localStorage.removeItem('tg_admin_session');
@@ -1176,58 +1310,73 @@
                 const response = await fetch(API_URL);
                 const result = await response.json();
                 globalProducts = result.data || [];
-                const tbody = document.getElementById('admin-product-table');
-                
-                tbody.innerHTML = '';
-                if (globalProducts.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Belum ada produk tersedia.</td></tr>`;
-                    return;
-                }
-
-                globalProducts.forEach((p, pIndex) => {
-                    const imagesList = p.images && p.images.length > 0 
-                        ? p.images 
-                        : (p.image ? [p.image] : ['https://via.placeholder.com/150?text=No+Image']);
-
-                    const displayImages = imagesList.slice(0, 3);
-                    const remainingCount = imagesList.length - 3;
-
-                    const mediaGallery = displayImages.map((mediaUrl, mediaIdx) => {
-                        const isVideo = checkIsVideo(mediaUrl);
-                        if (isVideo) {
-                            return `<div onclick="openLightbox(${pIndex}, ${mediaIdx})" class="relative w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 transition bg-black"><video src="${mediaUrl}" class="w-full h-full object-cover" muted preload="metadata" playsinline></video><span class="absolute bottom-0 right-0 bg-indigo-600 text-white text-[7px] px-0.5 font-bold">Vid</span></div>`;
-                        } else {
-                            return `<img src="${mediaUrl}" alt="${p.name}" onclick="openLightbox(${pIndex}, ${mediaIdx})" class="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 hover:scale-105 transition">`;
-                        }
-                    }).join('');
-
-                    const extraBadge = remainingCount > 0 ? `<div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">+${remainingCount}</div>` : '';
-                    const productWeight = p.weight ? `${p.weight} g` : '500 g';
-
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50/80 transition align-middle">
-                            <td class="py-4 px-4 whitespace-nowrap">
-                                <div class="flex items-center gap-1.5">
-                                    ${mediaGallery}
-                                    ${extraBadge}
-                                </div>
-                            </td>
-                            <td class="py-4 px-4 font-bold text-slate-900 max-w-[220px] truncate" title="${p.name}">${p.name}</td>
-                            <td class="py-4 px-4 whitespace-nowrap"><span class="bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase">${p.category || 'Action Figure'}</span></td>
-                            <td class="py-4 px-4 font-semibold text-indigo-600 whitespace-nowrap">Rp ${p.price.toLocaleString('id-ID')}</td>
-                            <td class="py-4 px-4 font-semibold whitespace-nowrap">${p.stock} unit</td>
-                            <td class="py-4 px-4 font-medium text-slate-600 whitespace-nowrap">${productWeight}</td>
-                            <td class="py-4 px-4 text-slate-500 max-w-[200px] truncate" title="${p.description || '-'}">${p.description || '-'}</td>
-                            <td class="py-4 px-4 text-center space-x-2 whitespace-nowrap">
-                                <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-bold px-3 py-1.5 rounded-xl transition">Edit</button>
-                                <button onclick="deleteProduct('${p._id || p.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Hapus</button>
-                            </td>
-                        </tr>
-                    `;
-                });
+                renderProductTable(globalProducts);
             } catch (error) {
                 console.error('Gagal memuat produk:', error);
             }
+        }
+
+        function filterAdminProducts() {
+            const keyword = document.getElementById('admin-search-input').value.toLowerCase().trim();
+            const filtered = globalProducts.filter(product => {
+                const name = (product.name || '').toLowerCase();
+                const category = (product.category || '').toLowerCase();
+                const desc = (product.description || '').toLowerCase();
+                return name.includes(keyword) || category.includes(keyword) || desc.includes(keyword);
+            });
+            renderProductTable(filtered);
+        }
+
+        function renderProductTable(productsToRender) {
+            const tbody = document.getElementById('admin-product-table');
+            tbody.innerHTML = '';
+            
+            if (productsToRender.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Tidak ada produk yang ditemukan.</td></tr>`;
+                return;
+            }
+
+            productsToRender.forEach((p, pIndex) => {
+                const imagesList = p.images && p.images.length > 0 
+                    ? p.images 
+                    : (p.image ? [p.image] : ['https://via.placeholder.com/150?text=No+Image']);
+
+                const displayImages = imagesList.slice(0, 3);
+                const remainingCount = imagesList.length - 3;
+
+                const mediaGallery = displayImages.map((mediaUrl, mediaIdx) => {
+                    const isVideo = checkIsVideo(mediaUrl);
+                    if (isVideo) {
+                        return `<div onclick="openLightbox(${pIndex}, ${mediaIdx})" class="relative w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 transition bg-black"><video src="${mediaUrl}" class="w-full h-full object-cover" muted preload="metadata" playsinline></video><span class="absolute bottom-0 right-0 bg-indigo-600 text-white text-[7px] px-0.5 font-bold">Vid</span></div>`;
+                    } else {
+                        return `<img src="${mediaUrl}" alt="${p.name}" onclick="openLightbox(${pIndex}, ${mediaIdx})" class="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-sm flex-shrink-0 cursor-pointer hover:opacity-80 hover:scale-105 transition">`;
+                    }
+                }).join('');
+
+                const extraBadge = remainingCount > 0 ? `<div class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">+${remainingCount}</div>` : '';
+                const productWeight = p.weight ? `${p.weight} g` : '500 g';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50/80 transition align-middle">
+                        <td class="py-4 px-4 whitespace-nowrap">
+                            <div class="flex items-center gap-1.5">
+                                ${mediaGallery}
+                                ${extraBadge}
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 font-bold text-slate-900 max-w-[220px] truncate" title="${p.name}">${p.name}</td>
+                        <td class="py-4 px-4 whitespace-nowrap"><span class="bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase">${p.category || 'Action Figure'}</span></td>
+                        <td class="py-4 px-4 font-semibold text-indigo-600 whitespace-nowrap">Rp ${p.price.toLocaleString('id-ID')}</td>
+                        <td class="py-4 px-4 font-semibold whitespace-nowrap">${p.stock} unit</td>
+                        <td class="py-4 px-4 font-medium text-slate-600 whitespace-nowrap">${productWeight}</td>
+                        <td class="py-4 px-4 text-slate-500 max-w-[200px] truncate" title="${p.description || '-'}">${p.description || '-'}</td>
+                        <td class="py-4 px-4 text-center space-x-2 whitespace-nowrap">
+                            <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-bold px-3 py-1.5 rounded-xl transition">Edit</button>
+                            <button onclick="deleteProduct('${p._id || p.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold px-3 py-1.5 rounded-xl transition">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
         }
 
         function openLightbox(productIndex, mediaIndex) {

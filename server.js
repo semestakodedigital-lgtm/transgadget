@@ -10,6 +10,8 @@ const axios = require('axios'); // Modul axios untuk HTTP Request ke API Biteshi
 const cloudinary = require('cloudinary').v2; // Modul Cloudinary
 const { CloudinaryStorage } = require('multer-storage-cloudinary'); // Modul Storage Multer ke Cloudinary
 const { Xendit } = require('xendit-node'); // Modul Xendit Payment Gateway
+const bcrypt = require('bcrypt'); // Modul enkripsi password admin
+const mongoose = require('mongoose'); // Modul Mongoose (Dipindahkan ke atas agar siap digunakan seluruh model)
 const connectDB = require('./config/db'); // Modul koneksi MongoDB dari folder config
 
 const Product = require('./models/Product');
@@ -19,9 +21,19 @@ const Transaction = require('./models/Transaction'); // MODEL: Untuk Laporan Keu
 const Chat = require('./models/Chat'); // MODEL: Untuk Live Chat
 
 // -------------------------------------------------------------
+// MODEL MONGODB: ADMIN (Didefinisikan langsung untuk mencegah error import Router)
+// -------------------------------------------------------------
+const adminSchema = new mongoose.Schema({
+    username: { type: String, required: true, default: 'admin' },
+    password: { type: String, required: true },
+    name: { type: String, default: 'Super Administrator' },
+    createdAt: { type: Date, default: Date.now }
+});
+const Admin = mongoose.models.Admin || mongoose.model('Admin', adminSchema);
+
+// -------------------------------------------------------------
 // MODEL MONGODB: REVIEW / ULASAN PRODUK
 // -------------------------------------------------------------
-const mongoose = require('mongoose');
 const reviewSchema = new mongoose.Schema({
     productId: { type: mongoose.Schema.Types.Mixed, required: true }, // Menggunakan Mixed agar fleksibel mendukung ObjectId atau String
     productName: { type: String, default: 'Produk Mainan' },
@@ -81,6 +93,118 @@ connectDB();
 // Root Endpoint
 app.get('/', (req, res) => {
     res.json({ message: 'Selamat datang di API Transgadget' });
+});
+
+// -------------------------------------------------------------
+// FITUR MANAJEMEN AKUN & PASSWORD ADMIN API (MONGODB STORAGE)
+// -------------------------------------------------------------
+
+// Endpoint POST: Autentikasi Login Admin
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        let admin = await Admin.findOne({ username: username ? username.trim() : 'admin' });
+        
+        if (!admin) {
+            if (username === 'admin' && password === 'admin123') {
+                return res.status(200).json({ success: true, message: 'Login berhasil (Default)' });
+            }
+            return res.status(400).json({ success: false, message: 'Username atau password salah!' });
+        }
+
+        let isMatch = false;
+        if (admin.password && (admin.password.startsWith('$2a$') || admin.password.startsWith('$2b$'))) {
+            isMatch = await bcrypt.compare(password, admin.password);
+        } else {
+            isMatch = (password === admin.password);
+        }
+
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Username atau password salah!' });
+        }
+
+        res.status(200).json({ success: true, message: 'Login berhasil' });
+    } catch (error) {
+        console.error('Error admin login:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint GET: Ambil daftar profil admin
+app.get('/api/admin/profile', async (req, res) => {
+    try {
+        let admins = await Admin.find({}, '-password');
+        if (admins.length === 0) {
+            // Buat default admin jika belum ada
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('admin123', salt);
+            const defaultAdmin = new Admin({
+                username: 'admin',
+                password: hashedPassword,
+                name: 'Super Administrator'
+            });
+            await defaultAdmin.save();
+            admins = await Admin.find({}, '-password');
+        }
+        res.status(200).json({ success: true, data: admins });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint PUT: Perbarui username atau password admin (DENGAN BCRYPT HASHING)
+app.put('/api/admin/update-credentials', async (req, res) => {
+    try {
+        const { oldPassword, newPassword, newUsername } = req.body;
+        
+        let admin = await Admin.findOne();
+        
+        if (!admin) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword || 'admin123', salt);
+            admin = new Admin({
+                username: newUsername ? newUsername.trim() : 'admin',
+                password: hashedPassword,
+                name: newUsername ? newUsername.trim() : 'Super Administrator'
+            });
+            await admin.save();
+            return res.status(200).json({ success: true, message: 'Akun admin baru berhasil diinisialisasi dan diperbarui' });
+        }
+
+        // Jika form mengirimkan password lama & baru untuk verifikasi
+        if (oldPassword && newPassword) {
+            let isMatch = false;
+            if (admin.password && (admin.password.startsWith('$2a$') || admin.password.startsWith('$2b$'))) {
+                isMatch = await bcrypt.compare(oldPassword, admin.password);
+            } else {
+                isMatch = (oldPassword === admin.password);
+            }
+
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: 'Password lama salah' });
+            }
+            
+            // Enkripsi password baru dengan bcrypt sebelum disimpan
+            const salt = await bcrypt.genSalt(10);
+            admin.password = await bcrypt.hash(newPassword, salt);
+        } else if (newPassword && !oldPassword) {
+            // Enkripsi password baru jika tidak ada validasi password lama
+            const salt = await bcrypt.genSalt(10);
+            admin.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        if (newUsername && newUsername.trim() !== '') {
+            admin.username = newUsername.trim();
+            admin.name = newUsername.trim();
+        }
+
+        await admin.save();
+        res.status(200).json({ success: true, message: 'Kredensial admin berhasil diperbarui' });
+    } catch (error) {
+        console.error('Error updating admin credentials:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // -------------------------------------------------------------

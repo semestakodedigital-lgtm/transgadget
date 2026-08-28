@@ -106,7 +106,7 @@
             </div>
         </div>
 
-        <!-- Category Navigation Bar (Tampil juga di mobile dengan fitur scroll horizontal) -->
+        <!-- Category Navigation Bar -->
         <nav class="border-t border-slate-100 bg-white/50 backdrop-blur-sm">
             <div id="category-filters" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 sm:space-x-8 text-[10px] sm:text-xs font-bold uppercase tracking-widest py-2.5 sm:py-3.5 text-slate-600 overflow-x-auto hide-scroll whitespace-nowrap">
                 <button onclick="filterByCategory('Semua', this)" class="text-indigo-600 border-b-2 border-indigo-600 pb-1 whitespace-nowrap font-bold">Semua Product</button>
@@ -122,7 +122,7 @@
     <!-- Main Content Layout -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex-grow w-full">
         
-        <!-- KOMPONEN BANNER GAYA FOOM -->
+        <!-- KOMPONEN BANNER -->
         <div class="mb-6 sm:mb-10">
             <div id="dynamic-banner-container" class="relative w-full h-[220px] sm:h-[420px] md:h-[500px] lg:h-[540px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl bg-slate-950 flex items-center justify-center transition-all duration-500">
                 <img id="dynamic-banner-img" src="" alt="Banner Promosi" class="w-full h-full object-cover transition-all duration-700 hidden">
@@ -180,6 +180,7 @@
                             <span id="slider-counter" class="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 bg-black/60 text-white text-[9px] sm:text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">1 / 1</span>
                         </div>
 
+                        <!-- Area Thumbnail Gambar -->
                         <div id="detail-thumbnails" class="flex gap-2 overflow-x-auto pb-1 hide-scroll"></div>
                     </div>
 
@@ -245,7 +246,7 @@
             <div class="relative bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl max-w-2xl w-full z-10 p-5 sm:p-8 border border-slate-100 max-h-[85vh] flex flex-col">
                 <div class="flex justify-between items-center pb-3 sm:pb-4 border-b border-slate-200">
                     <h3 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">📦 Riwayat Pesanan</h3>
-                   <button onclick="toggleOrdersModal(false)" class="text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-xs sm:text-sm transition">✕</button>
+                    <button onclick="toggleOrdersModal(false)" class="text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-xs sm:text-sm transition">✕</button>
                 </div>
 
                <div id="orders-list-container" class="flex-1 overflow-y-auto py-4 space-y-4">
@@ -494,7 +495,7 @@
         </div>
     </div>
 
-    <!-- Modal Instruksi Pembayaran -->
+    <!-- Modal Instruksi Pembayaran (Cadangan jika manual) -->
     <div id="payment-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-3 sm:px-4 py-6 sm:py-8">
             <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"></div>
@@ -641,7 +642,7 @@
                 unreadChatCount = 0;
                 chatBadge.classList.add('hidden');
                 chatBadge.innerText = '0';
-                document.title = 'TransGadget.Indonesia - Official Wesbite Store';
+                document.title = 'TransGadget Indonesia - Official Website Store';
                 chatInput.focus();
                 scrollToBottomChat();
                 fetchChatHistory();
@@ -1179,7 +1180,7 @@
                 return;
             }
 
-            products.forEach((product, index) => {
+            products.forEach((product) => {
                 const isAvailable = product.stock > 0;
                 const mediaList = (product.images && product.images.length > 0) ? product.images : (product.image ? [product.image] : ['https://via.placeholder.com/300?text=No+Image']);
                 const mainMedia = mediaList[0];
@@ -1195,7 +1196,7 @@
                 const soldCount = getProductSoldCount(product);
 
                 grid.innerHTML += `
-                    <div onclick='openDetailModal(${index})' class="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+                    <div onclick="openDetailModal('${productId}')" class="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
                         <div>
                             <div class="relative w-full aspect-square bg-slate-900 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
                                 ${mediaHtml}
@@ -1237,17 +1238,24 @@
                 const name = (product.name || '').toLowerCase();
                 const cat = (product.category || '').toLowerCase();
                 const matchesKeyword = !keyword || name.includes(keyword) || cat.includes(keyword);
-                const matchesCategory = currentCategory === 'Semua' || cat.replace(/[^a-z0-9]/g, '') === currentCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
+                // Pengecekan kategori dibuat lebih kuat dengan menghapus spasi / simbol.
+                const matchesCategory = currentCategory === 'Semua' || 
+                                        cat.replace(/[^a-z0-9]/g, '') === currentCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
+                
                 return matchesKeyword && matchesCategory;
             });
             displayProducts(filtered);
         }
 
-        function openDetailModal(productIndex) {
-            activeProduct = allProducts[productIndex];
+        function openDetailModal(productId) {
+            activeProduct = allProducts.find(p => String(p._id || p.id || 'default') === String(productId));
+            if (!activeProduct) return;
+
             activeImages = (activeProduct.images && activeProduct.images.length > 0) ? activeProduct.images : (activeProduct.image ? [activeProduct.image] : ['https://via.placeholder.com/300?text=No+Image']);
             activeSlideIndex = 0;
             selectedQuantity = 1;
+            
             document.getElementById('modal-quantity').innerText = selectedQuantity;
             document.getElementById('modal-product-name').innerText = activeProduct.name;
             document.getElementById('modal-product-price').innerText = `Rp ${Number(activeProduct.price).toLocaleString('id-ID')}`;
@@ -1268,6 +1276,7 @@
                 addBtn.className = 'w-full bg-slate-100 text-slate-400 font-bold py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs uppercase tracking-wider cursor-not-allowed mt-2';
                 addBtn.onclick = null;
             }
+            
             updateSliderView();
             renderProductReviewsForModal();
             toggleDetailModal(true);
@@ -1299,6 +1308,17 @@
                 imgEl.src = currentMedia;
             }
             document.getElementById('slider-counter').innerText = `${activeSlideIndex + 1} / ${activeImages.length}`;
+
+            // Render thumbnails (Perbaikan: Agar array gambar muncul di bawah slider modal)
+            const thumbsContainer = document.getElementById('detail-thumbnails');
+            if (thumbsContainer) {
+                thumbsContainer.innerHTML = activeImages.map((src, idx) => {
+                    const isVid = src.endsWith('.mp4') || src.includes('video') || src.startsWith('data:video');
+                    const content = isVid ? `<video src="${src}" class="w-full h-full object-cover"></video>` : `<img src="${src}" class="w-full h-full object-cover">`;
+                    const activeClass = idx === activeSlideIndex ? 'border-indigo-600 border-2' : 'border-transparent border-2 opacity-60';
+                    return `<button onclick="activeSlideIndex = ${idx}; updateSliderView();" class="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100 transition-all ${activeClass}">${content}</button>`;
+                }).join('');
+            }
         }
 
         function changeSlide(direction) {
@@ -1316,6 +1336,11 @@
                 document.getElementById('detail-slider-video').pause();
                 modal.classList.add('hidden');
             }
+        }
+
+        // Perbaikan: Fungsi menutup modal pembayaran ditambahkan
+        function closePaymentModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
         }
 
         function initMap() {

@@ -93,7 +93,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const isAuth = localStorage.getItem('tg_admin_session') || sessionStorage.getItem('tg_admin_session');
             if (isAuth === 'true') {
-                window.location.href = '/admin-dashboard.html'; // Diperbaiki ke dashboard admin
+                window.location.href = '/admin-dashboard.html';
             }
         });
 
@@ -114,7 +114,6 @@
             const rememberMe = document.getElementById('remember-me').checked;
             
             const alertBox = document.getElementById('error-alert');
-            const alertMsg = document.getElementById('error-message');
             const loginBtn = document.getElementById('login-btn');
 
             alertBox.classList.add('hidden');
@@ -122,7 +121,7 @@
             loginBtn.disabled = true;
 
             try {
-                // Request verifikasi ke API Backend
+                // Mengirimkan kredensial langsung ke endpoint login aman di server (server.js)
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -133,18 +132,12 @@
 
                 if (response.ok && result.success) {
                     saveSession(rememberMe);
-                    window.location.href = '/admin-dashboard.html'; // Diperbaiki ke dashboard admin
+                    window.location.href = '/admin-dashboard.html';
                 } else {
                     showError(result.message || 'Username atau password salah!');
                 }
             } catch (err) {
-                // Fallback verifikasi lokal (Default: admin / admin123)
-                if (usernameInput === 'admin' && passwordInput === 'admin123') {
-                    saveSession(rememberMe);
-                    window.location.href = '/admin-dashboard.html'; // Diperbaiki ke dashboard admin
-                } else {
-                    showError('Username atau password salah! (Default: admin / admin123)');
-                }
+                showError('Terjadi kesalahan koneksi ke server.');
             } finally {
                 loginBtn.innerText = 'Masuk ke Dashboard';
                 loginBtn.disabled = false;
