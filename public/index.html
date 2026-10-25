@@ -16,10 +16,13 @@
     <!-- Socket.IO Client Library -->
     <script src="/socket.io/socket.io.js"></script>
 
+    <!-- Midtrans Snap Script -->
+    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-pIHMPSzRFTRI7Ucr"></script>
+
     <!-- Logo Web (Favicon) -->
     <link rel="icon" type="image/png" href="/images/logo.png">
 
-    <!-- Open Graph Image untuk mengarahkan Google ke Logo Web -->
+    <!-- Open Graph Image -->
     <meta property="og:image" content="https://transgadget.co.id/images/logo.png">
     <meta property="og:image:secure_url" content="https://transgadget.co.id/images/logo.png">
     <meta property="og:image:type" content="image/png">
@@ -72,7 +75,7 @@
     <header class="bg-white/85 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
             
-            <!-- Logo Bagian Kiri (Responsive Truncate) -->
+            <!-- Logo Bagian Kiri -->
             <div class="flex items-center space-x-1.5 sm:space-x-2 flex-1 min-w-0">
                 <img src="images/logo.png" alt="TransGadget Logo" class="h-6 sm:h-10 w-auto object-contain shrink-0" onerror="this.style.display='none'">
                 <span class="text-xs sm:text-lg font-extrabold text-slate-900 tracking-tight truncate">TransGadget Indonesia</span>
@@ -81,7 +84,7 @@
             <!-- Search Bar -->
             <div class="flex-1 max-w-md mx-8 hidden md:block">
                 <div class="relative">
-                    <input type="text" id="search-input" oninput="filterProducts()" placeholder="Cari Action Figure, mainan edukasi, board game..." class="w-full bg-slate-100/80 border border-slate-200 rounded-full px-5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 transition shadow-inner">
+                    <input type="text" id="search-input" oninput="filterProducts()" placeholder="Cari Product..." class="w-full bg-slate-100/80 border border-slate-200 rounded-full px-5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 transition shadow-inner">
                 </div>
             </div>
 
@@ -111,10 +114,11 @@
             <div id="category-filters" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 sm:space-x-8 text-[10px] sm:text-xs font-bold uppercase tracking-widest py-2.5 sm:py-3.5 text-slate-600 overflow-x-auto hide-scroll whitespace-nowrap">
                 <button onclick="filterByCategory('Semua', this)" class="text-indigo-600 border-b-2 border-indigo-600 pb-1 whitespace-nowrap font-bold">Semua Product</button>
                 <button onclick="filterByCategory('Action Figure', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Action Figure</button>
-                <button onclick="filterByCategory('Model Kit', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Model Kit</button>
-                <button onclick="filterByCategory('Board Game', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Board Game</button>
-                <button onclick="filterByCategory('Mainan Edukasi', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Mainan Edukasi</button>
-                <button onclick="filterByCategory('Pre - Order', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Pre - Order</button>
+                <button onclick="filterByCategory('Modelkit', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Modelkit</button>
+                <button onclick="filterByCategory('Killerbody', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Killerbody</button>
+                <button onclick="filterByCategory('Yolopart', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Yolopart</button>
+                <button onclick="filterByCategory('Joytoy', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Joytoy</button>
+                <button onclick="filterByCategory('Pre-order', this)" class="hover:text-indigo-600 transition pb-1 whitespace-nowrap text-slate-600">Pre-order</button>
             </div>
         </nav>
     </header>
@@ -332,11 +336,11 @@
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Metode Pengiriman</label>
                             <select id="shipping-type-selector" onchange="switchShippingType()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 font-bold">
-                                <option value="jne" selected>JNE Express</option>
-                                <option value="instant">Kurir Instan (Gojek / Grab)</option>
+                                <option value="jne">JNE</option>
+                                <option value="instant" selected>Gojek / Grab Instan</option>
                             </select>
                             <p id="shipping-type-help" class="mt-1 text-[9px] sm:text-[10px] text-slate-500">
-                                Pilih metode pengiriman terlebih dahulu, kemudian cek tarif untuk melihat layanan yang tersedia.
+                                Pilih jenis layanan pengiriman sesuai kebutuhan Anda.
                             </p>
                         </div>
 
@@ -363,20 +367,28 @@
                             <input type="text" id="cust-address" onchange="autoSyncAddressToMap()" required placeholder="Alamat jalan, nomor rumah, RT/RW" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
 
-                        <div>
+                        <!-- Autosuggest Area Biteship -->
+                        <div class="relative">
                             <label class="block font-bold text-slate-700 mb-1">Kecamatan</label>
-                            <input type="text" id="cust-district" onchange="autoSyncAddressToMap()" required placeholder="Kecamatan" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
+                            <input type="text" id="biteship-area-input" oninput="searchBiteshipAreas(this.value)" placeholder="Ketik minimal 3 huruf (cth: Menteng, Penjaringan)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                            
+                            <!-- Dropdown Hasil Pencarian Biteship -->
+                            <div id="biteship-area-dropdown" class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-50 hidden"></div>
+                            
+                            <!-- Hidden input -->
+                            <input type="hidden" id="selected-biteship-area-id" value="">
+                            <input type="hidden" id="cust-district" value="">
                         </div>
 
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Kota</label>
-                            <input type="text" id="cust-city" value="" onchange="autoSyncAddressToMap()" required placeholder="Ketik nama kota..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                            <input type="text" id="cust-city" value="" required placeholder="Ketik nama kota..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-bold text-slate-700 mb-1">Provinsi</label>
-                                <select id="cust-province" onchange="autoSyncAddressToMap()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                                <select id="cust-province" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
                                     <option value="">-- Pilih Provinsi --</option>
                                     <option value="Aceh">Aceh</option>
                                     <option value="Bali">Bali</option>
@@ -429,7 +441,7 @@
                             <input type="tel" id="cust-phone" required placeholder="Nomor Telepon / WhatsApp" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
 
-                        <div id="instant-map-section" class="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-3 space-y-2 hidden">
+                        <div id="instant-map-section" class="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-3 space-y-2">
                             <div class="flex justify-between items-center">
                                 <label class="block font-bold text-indigo-900 text-[10px] sm:text-[11px] uppercase tracking-wider">🗺️ Titik Presisi (Gojek/Grab)</label>
                                 <button type="button" onclick="getCurrentLocation()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded-lg transition shadow-sm">
@@ -464,9 +476,9 @@
                             </div>
 
                             <div>
-                                <label id="service-label" class="block font-bold text-slate-700 mb-1 text-[11px] sm:text-xs">Pilih Layanan</label>
+                                <label id="service-label" class="block font-bold text-slate-700 mb-1 text-[11px] sm:text-xs">Pilih Layanan Kurir</label>
                                 <select id="cust-service" onchange="updateGrandTotal()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-[11px] sm:text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
-                                    <option value="">-- Klik "Cek Tarif" untuk melihat layanan --</option>
+                                    <option value="">-- Klik "Cek Tarif" untuk melihat pilihan layanan kurir --</option>
                                 </select>
                             </div>
                         </div>
@@ -487,7 +499,7 @@
                         <span class="text-xs sm:text-sm font-extrabold text-slate-900">Total Tagihan:</span>
                         <span id="cart-total" class="text-base sm:text-lg font-black text-indigo-600">Rp 0</span>
                     </div>
-                    <button id="checkout-btn" onclick="triggerCheckoutWithMaintenanceCheck()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 sm:py-3.5 rounded-xl text-[11px] sm:text-xs uppercase tracking-wider transition shadow-md shadow-indigo-600/20 mt-3">
+                    <button id="checkout-btn" onclick="checkout()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 sm:py-3.5 rounded-xl text-[11px] sm:text-xs uppercase tracking-wider transition shadow-md shadow-indigo-600/20 mt-3">
                         Proses Checkout Sekarang
                     </button>
                 </div>
@@ -495,58 +507,7 @@
         </div>
     </div>
 
-    <!-- Modal Instruksi Pembayaran (Cadangan jika manual) -->
-    <div id="payment-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-        <div class="flex items-center justify-center min-h-screen px-3 sm:px-4 py-6 sm:py-8">
-            <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"></div>
-
-            <div class="relative bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl max-w-md w-full z-10 p-5 sm:p-8 space-y-4 sm:space-y-5 text-center border border-slate-100">
-                <div class="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto text-lg sm:text-xl font-extrabold">
-                    💳
-                </div>
-
-                <div class="space-y-1">
-                    <h3 class="text-base sm:text-lg font-extrabold text-slate-900">Instruksi Pembayaran</h3>
-                    <p class="text-[11px] sm:text-xs text-slate-500">ID Pesanan: <span id="pay-order-id" class="font-bold text-slate-800">#000000</span></p>
-                </div>
-
-                <div class="bg-slate-50 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 text-left space-y-2 sm:space-y-3 text-[11px] sm:text-xs">
-                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
-                        <span class="text-slate-500 font-semibold">Total Tagihan:</span>
-                        <span id="pay-total-amount" class="text-sm sm:text-base font-black text-indigo-600">Rp 0</span>
-                    </div>
-                    <div id="payment-details-content" class="space-y-2 pt-1"></div>
-                </div>
-
-                <div class="space-y-2 sm:space-y-2.5 pt-1 sm:pt-2">
-                    <a id="wa-confirm-btn" href="#" target="_blank" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 sm:py-3.5 px-3 sm:px-4 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-1.5 sm:gap-2">
-                        <span>💬 Konfirmasi via WhatsApp</span>
-                    </a>
-                    <button onclick="closePaymentModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs transition">
-                        Tutup Jendela
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Pop-up Maintenance Pengiriman & Pembayaran (Otomatis Muncul Saat Halaman Dimuat) -->
-    <div id="maintenance-popup-modal" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6" style="background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);">
-        <div class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full z-10 p-6 sm:p-8 text-center border border-slate-100 space-y-4">
-            <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black">
-                🛠️
-            </div>
-            <div class="space-y-1">
-                <h3 class="text-lg font-extrabold text-slate-900">Sistem Sedang Maintenance</h3>
-                <p class="text-xs text-slate-500">Mohon maaf, layanan pengiriman dan gateway pembayaran saat ini sedang dalam pemeliharaan rutin.</p>
-            </div>
-            <button onclick="toggleMaintenancePopup(false)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-600/20">
-                SAYA MENGERTI
-            </button>
-        </div>
-    </div>
-
-    <!-- KOMPONEN LIVE CHAT MELAYANG DENGAN FITUR EDIT & HAPUS PESAN -->
+    <!-- KOMPONEN LIVE CHAT MELAYANG -->
     <div id="chat-widget" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
         <div id="chat-window" class="hidden w-64 sm:w-80 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-3 sm:mb-4 border border-slate-200 transition-all duration-300">
             <div class="bg-indigo-600 px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center text-white">
@@ -613,6 +574,16 @@
 
     <!-- Script JavaScript -->
     <script>
+        // ==========================================
+        // FITUR GUEST ID GENERATOR
+        // ==========================================
+        let guestId = localStorage.getItem('guest_id');
+        if (!guestId) {
+            // Membuat ID tamu unik jika belum ada di browser pelanggan
+            guestId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem('guest_id', guestId);
+        }
+
         // ==========================================
         // KONFIGURASI LIVE CHAT SOCKET.IO & MONGODB
         // ==========================================
@@ -763,8 +734,8 @@
         // ==========================================
         // SISTEM ULASAN & PESANAN (TERHUBUNG KE DATABASE MONGODB)
         // ==========================================
-        let mockReviewsData = JSON.parse(localStorage.getItem('transgadget_reviews')) || {};
         let customerOrders = [];
+        let globalReviews = []; // Variabel untuk menyimpan ulasan asli dari database
 
         async function fetchCustomerOrders() {
             try {
@@ -774,7 +745,7 @@
                     allProducts = prodResult.data || [];
                 }
 
-                const response = await fetch('/api/orders');
+                const response = await fetch(`/api/orders?guest_id=${guestId}`);
                 const result = await response.json();
                 if (result.success && result.data) {
                     const reviewedStorage = JSON.parse(localStorage.getItem('tg_reviewed_items') || '{}');
@@ -857,7 +828,7 @@
             const container = document.getElementById('orders-list-container');
             if (!container) return;
             if (customerOrders.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-xs text-center py-8">Belum ada riwayat pesanan di database.</p>`;
+                container.innerHTML = `<p class="text-slate-400 text-xs text-center py-8">Belum ada riwayat pesanan</p>`;
                 return;
             }
             container.innerHTML = '';
@@ -912,6 +883,7 @@
             });
         }
 
+        // FUNGSI API BARU UNTUK KIRIM ULASAN LANGSUNG KE MONGODB
         async function submitCompletedProductReview() {
             const productId = document.getElementById('review-target-product-id').value;
             const orderKey = document.getElementById('review-target-order-id').value.split('-');
@@ -922,14 +894,11 @@
             if (!author || !comment) return alert('Mohon isi nama dan komentar.');
             localStorage.setItem('tg_last_reviewer', author);
 
-            if (!mockReviewsData[productId]) mockReviewsData[productId] = [];
-            mockReviewsData[productId].unshift({ id: Date.now(), author, rating, date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }), comment });
-            localStorage.setItem('transgadget_reviews', JSON.stringify(mockReviewsData));
+            const order = customerOrders[parseInt(orderKey[0])];
+            const item = order.items[parseInt(orderKey[1])];
 
             try {
-                const order = customerOrders[parseInt(orderKey[0])];
-                const item = order.items[parseInt(orderKey[1])];
-                await fetch('/api/reviews', {
+                const response = await fetch('/api/reviews', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -940,35 +909,54 @@
                         comment: comment
                     })
                 });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Update status pesanan (reviewed = true) di UI
+                    if (orderKey.length === 2) {
+                        const ordIdx = parseInt(orderKey[0]);
+                        const itemIdx = parseInt(orderKey[1]);
+                        customerOrders[ordIdx].items[itemIdx].reviewed = true;
+                        
+                        const targetOrder = customerOrders[ordIdx];
+                        const targetItem = targetOrder.items[itemIdx];
+                        
+                        let reviewedStorage = JSON.parse(localStorage.getItem('tg_reviewed_items') || '{}');
+                        reviewedStorage[targetOrder.orderId + '_' + targetItem.productId] = true;
+                        localStorage.setItem('tg_reviewed_items', JSON.stringify(reviewedStorage));
+                    }
+
+                    toggleWriteReviewModal(false);
+                    renderMyOrdersList();
+                    
+                    // Segarkan list produk dan reviews
+                    await fetchCustomerProducts();
+                    
+                    // Jika modal detail terbuka, segarkan
+                    if (!document.getElementById('detail-modal').classList.contains('hidden') && activeProduct) {
+                        renderProductReviewsForModal();
+                    }
+
+                    alert('Ulasan Anda berhasil dikirim dan tersimpan di database!');
+                } else {
+                    alert('Gagal mengirim ulasan: ' + (result.message || result.error || 'Server error.'));
+                }
             } catch (err) {
-                console.warn('Gagal sync ulasan ke server API:', err);
+                console.error('Gagal sync ulasan ke server API:', err);
+                alert('Terjadi kesalahan koneksi saat mengirim ulasan ke server.');
             }
-
-            if (orderKey.length === 2) {
-                const ordIdx = parseInt(orderKey[0]);
-                const itemIdx = parseInt(orderKey[1]);
-                customerOrders[ordIdx].items[itemIdx].reviewed = true;
-                
-                const targetOrder = customerOrders[ordIdx];
-                const targetItem = targetOrder.items[itemIdx];
-                
-                let reviewedStorage = JSON.parse(localStorage.getItem('tg_reviewed_items') || '{}');
-                reviewedStorage[targetOrder.orderId + '_' + targetItem.productId] = true;
-                localStorage.setItem('tg_reviewed_items', JSON.stringify(reviewedStorage));
-            }
-
-            toggleWriteReviewModal(false);
-            renderMyOrdersList();
-            applyFilters();
-            alert('Ulasan berhasil dikirim!');
         }
 
+        // FUNGSI API BARU UNTUK AMBIL ULASAN DARI MONGODB
         async function renderProductReviewsForModal() {
             const container = document.getElementById('product-reviews-container');
             if (!container || !activeProduct) return;
             const productIdStr = String(activeProduct._id || activeProduct.id || '');
             
             let reviews = [];
+            container.innerHTML = `<p class="text-slate-400 text-xs text-center py-6">Memuat ulasan dari server...</p>`;
+            
             try {
                 const res = await fetch(`/api/reviews`);
                 const result = await res.json();
@@ -980,10 +968,6 @@
                 }
             } catch (err) {
                 console.warn('Gagal mengambil ulasan dari server:', err);
-            }
-
-            if (!reviews || reviews.length === 0) {
-                reviews = mockReviewsData[productIdStr] || [];
             }
 
             const totalRating = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
@@ -1174,11 +1158,91 @@
             }
         }
 
+        // ==========================================
+        // PENCARIAN AREA BITESHIP VIA BACKEND PROXY
+        // ==========================================
+        let searchTimeout = null;
+        async function searchBiteshipAreas(keyword) {
+            const dropdown = document.getElementById('biteship-area-dropdown');
+            if (!keyword || keyword.length < 3) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/biteship/areas?input=${encodeURIComponent(keyword)}`);
+                    const result = await response.json();
+
+                    if (result && result.areas && result.areas.length > 0) {
+                        dropdown.innerHTML = '';
+                        result.areas.forEach(area => {
+                            const pCode = area.postal_code || area.zip_code || (area.postal_codes && area.postal_codes[0]) || '';
+                            const cityName = area.administrative_division_level_2_name || area.city || '';
+                            const provName = area.administrative_division_level_1_name || area.province || '';
+
+                            dropdown.innerHTML += `
+                                <div onclick="selectBiteshipArea('${area.id}', \`${area.name}\`, \`${pCode}\`, \`${cityName}\`, \`${provName}\`)" class="p-2.5 hover:bg-indigo-50 cursor-pointer text-xs border-b border-slate-100">
+                                    <p class="font-bold text-slate-800">${area.name}</p>
+                                    <p class="text-[10px] text-slate-500">${cityName}, ${provName} (Kode Pos: ${pCode || '-'})</p>
+                                </div>
+                            `;
+                        });
+                        dropdown.classList.remove('hidden');
+                    } else {
+                        dropdown.innerHTML = `<div class="p-2 text-xs text-slate-400 text-center">Area tidak ditemukan</div>`;
+                        dropdown.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error('Gagal mencari area Biteship:', err);
+                }
+            }, 400);
+        }
+
+        function selectBiteshipArea(areaId, areaName, postalCode, cityName, provinceName) {
+            const cleanDistrict = areaName.split(',')[0].trim();
+
+            document.getElementById('biteship-area-input').value = cleanDistrict;
+            document.getElementById('selected-biteship-area-id').value = areaId;
+            document.getElementById('cust-district').value = cleanDistrict;
+            
+            if (cityName) {
+                document.getElementById('cust-city').value = cityName.split(',')[0].trim();
+            }
+            
+            if (postalCode && postalCode !== '-' && postalCode !== 'undefined' && postalCode !== 'null' && String(postalCode).trim() !== '') {
+                document.getElementById('cust-postal').value = String(postalCode).trim();
+            }
+
+            if (provinceName) {
+                const provinceSelect = document.getElementById('cust-province');
+                for (let i = 0; i < provinceSelect.options.length; i++) {
+                    if (provinceSelect.options[i].value.toLowerCase() === provinceName.toLowerCase() || 
+                        provinceSelect.options[i].text.toLowerCase() === provinceName.toLowerCase()) {
+                        provinceSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            document.getElementById('biteship-area-dropdown').classList.add('hidden');
+            autoSyncAddressToMap();
+        }
+
         async function fetchCustomerProducts() {
             try {
                 const response = await fetch(API_URL);
                 const result = await response.json();
                 allProducts = result.data || [];
+                
+                // Ambil daftar ulasan juga secara global untuk kalkulasi rating di Home
+                try {
+                    const revRes = await fetch('/api/reviews');
+                    const revResult = await revRes.json();
+                    if(revResult.success) globalReviews = revResult.data || [];
+                } catch(e) {}
+
                 applyFilters();
                 updateCartUI();
             } catch (error) {
@@ -1204,10 +1268,10 @@
 
                 let mediaHtml = isVideo ? `<video src="${mainMedia}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" muted></video>` : `<img src="${mainMedia}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
 
-                const productId = product._id || product.id || 'default';
-                const reviews = mockReviewsData[productId] || [];
-                const reviewCount = reviews.length;
-                const avgRating = reviewCount > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount).toFixed(1) : "5.0";
+                const productId = String(product._id || product.id || 'default');
+                const productReviews = globalReviews.filter(r => String(r.productId?._id || r.productId) === productId || r.productName === product.name);
+                const reviewCount = productReviews.length;
+                const avgRating = reviewCount > 0 ? (productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / reviewCount).toFixed(1) : "5.0";
                 
                 const soldCount = getProductSoldCount(product);
 
@@ -1261,13 +1325,24 @@
                 return matchesKeyword && matchesCategory;
             });
 
-            // Otomatis menggeser produk dengan stok habis (stock = 0) ke urutan paling bawah
+            // Urutkan: Barang Ready di atas, Habis di bawah, lalu berdasarkan yang terbaru
             filtered.sort((a, b) => {
                 const stockA = Number(a.stock) || 0;
                 const stockB = Number(b.stock) || 0;
+                
+                // Prioritas 1: Stok (Habis ke bawah)
                 if (stockA > 0 && stockB === 0) return -1;
                 if (stockA === 0 && stockB > 0) return 1;
-                return 0;
+                
+                // Prioritas 2: Barang Baru di atas (berdasarkan createdAt)
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                
+                if (dateA !== dateB) {
+                    return dateB - dateA;
+                }
+                
+                return 0; // Jika tidak ada timestamp, biarkan urutan bawaan dari database
             });
 
             displayProducts(filtered);
@@ -1360,26 +1435,6 @@
                 document.getElementById('detail-slider-video').pause();
                 modal.classList.add('hidden');
             }
-        }
-
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden');
-        }
-
-        function toggleMaintenancePopup(show) {
-            const modal = document.getElementById('maintenance-popup-modal');
-            if (show) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            } else {
-                modal.classList.remove('flex');
-                modal.classList.add('hidden');
-            }
-        }
-
-        function triggerCheckoutWithMaintenanceCheck() {
-            // Langsung tampilkan pop-up maintenance saat tombol checkout ditekan
-            toggleMaintenancePopup(true);
         }
 
         function initMap() {
@@ -1492,137 +1547,165 @@
         }
 
         function switchShippingType() {
-            const type = document.getElementById('shipping-type-selector').value;
+            const selector = document.getElementById('shipping-type-selector');
+            const type = selector ? selector.value : 'instant';
+
             const mapSection = document.getElementById('instant-map-section');
             const serviceSelect = document.getElementById('cust-service');
             const serviceLabel = document.getElementById('service-label');
             const helpText = document.getElementById('shipping-type-help');
 
-            if (type === 'instant') {
-                mapSection.classList.remove('hidden');
-                serviceLabel.innerText = 'Pilih Layanan Kurir Instan';
-                helpText.innerText = 'Kurir instan membutuhkan titik lokasi Maps agar tarif dapat dihitung.';
-                serviceSelect.innerHTML = '<option value="">-- Klik "Cek Tarif" untuk melihat layanan --</option>';
+            if (type === 'jne') {
+                if (mapSection) mapSection.classList.add('hidden');
+                if (serviceLabel) serviceLabel.innerText = 'Pilih Layanan JNE';
+                if (helpText) helpText.innerText = 'Pengiriman Reguler menggunakan API JNE.';
             } else {
-                mapSection.classList.add('hidden');
-                serviceLabel.innerText = 'Pilih Layanan JNE';
-                helpText.innerText = 'JNE tidak membutuhkan titik Maps. Cukup lengkapi alamat dan kota tujuan.';
-                serviceSelect.innerHTML = '<option value="">-- Klik "Cek Tarif" untuk melihat layanan JNE --</option>';
-            }
-
-            selectedOngkirCost = 0;
-            selectedServiceDescription = '';
-            updateGrandTotal();
-
-            if (type === 'instant') {
+                if (mapSection) mapSection.classList.remove('hidden');
+                if (serviceLabel) serviceLabel.innerText = 'Pilih Layanan Kurir Instan';
+                if (helpText) helpText.innerText = 'Pengiriman Instan menggunakan Gojek / Grab. Silakan tentukan titik lokasi pada peta.';
+                
                 setTimeout(() => {
                     initMap();
                     if (leafletMap) leafletMap.invalidateSize();
                 }, 100);
             }
+
+            if (serviceSelect) serviceSelect.innerHTML = '<option value="">-- Klik "Cek Tarif" untuk melihat pilihan layanan --</option>';
+            selectedOngkirCost = 0;
+            selectedServiceDescription = '';
+            updateGrandTotal();
         }
 
         function triggerRateCalculation() {
-            const type = document.getElementById('shipping-type-selector').value;
-
             if (cart.length === 0) {
-                return alert('Keranjang belanja masih kosong.');
+                return alert('Keranjang belanja kosong.');
             }
 
-            if (type === 'instant') {
+            const selector = document.getElementById('shipping-type-selector');
+            const type = selector ? selector.value : 'instant';
+
+            if (type === 'jne') {
+                const city = document.getElementById('cust-city').value.trim();
+                const district = document.getElementById('cust-district').value.trim();
+                if (!city && !district) {
+                    return alert('Mohon isi nama Kota atau Kecamatan tujuan terlebih dahulu untuk pengiriman JNE.');
+                }
+                calculateJneRates();
+            } else {
                 const address = document.getElementById('cust-address').value.trim();
-                if (!address) {
-                    return alert('Lengkapi alamat tujuan terlebih dahulu.');
+                const lat = parseFloat(document.getElementById('cust-lat').value);
+                const lng = parseFloat(document.getElementById('cust-lng').value);
+                if (!address || !lat || !lng) {
+                    return alert('Mohon lengkapi alamat dan titik lokasi pada peta.');
                 }
                 calculateBiteshipRates();
-            } else {
-                const city = document.getElementById('cust-city').value.trim();
-                if (!city) {
-                    return alert('Ketik kota tujuan terlebih dahulu.');
-                }
-                fetchJneRates();
             }
         }
 
-        async function fetchJneRates() {
-            const city = document.getElementById('cust-city').value.trim();
+        async function calculateJneRates() {
             const serviceSelect = document.getElementById('cust-service');
-            const totalWeight = getTotalWeight();
+            const city = document.getElementById('cust-city').value.trim();
+            const district = document.getElementById('cust-district').value.trim();
+            const postalCode = document.getElementById('cust-postal').value.trim();
+            const weightKg = Math.ceil(getTotalWeight() / 1000) || 1;
 
-            if (!city) {
-                serviceSelect.innerHTML = '<option value="">-- Ketik Kota Tujuan Dulu --</option>';
-                selectedOngkirCost = 0;
-                updateGrandTotal();
-                return;
-            }
+            const jneDestination = city ? city.toUpperCase() : (district ? district.toUpperCase() : postalCode);
 
             serviceSelect.innerHTML = '<option value="">Menghitung tarif JNE...</option>';
 
             try {
-                const response = await fetch('/api/jne/rates', {
+                const jneParams = new URLSearchParams();
+                jneParams.append('thru', jneDestination);
+                jneParams.append('city', city);
+                jneParams.append('weight', weightKg.toString());
+
+                const response = await fetch('/api/shipping/jne-cost', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ destinationCode: city, weight: totalWeight })
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: jneParams.toString()
                 });
                 const result = await response.json();
 
-                if (result.success && result.pricing && result.pricing.length > 0) {
-                    serviceSelect.innerHTML = '';
-                    result.pricing.forEach(rate => {
-                        serviceSelect.innerHTML += `
-                            <option value="${rate.price}" data-desc="JNE ${rate.service_name} (${rate.etd || 'Reguler'})">
-                                JNE ${rate.service_name} - Rp ${Number(rate.price).toLocaleString('id-ID')} (${rate.etd || 'Reguler'})
-                            </option>
-                        `;
-                    });
-                    updateGrandTotal();
-                } else {
-                    serviceSelect.innerHTML = `
-                        <option value="20000" data-desc="JNE REG">JNE REG (Reguler 2-3 Hari) - Rp 20.000</option>
-                        <option value="35000" data-desc="JNE YES">JNE YES (Yakin Esok Sampai) - Rp 35.000</option>
-                    `;
-                    updateGrandTotal();
-                }
-            } catch (err) {
-                console.error(err);
+                if (result.success) {
+                    let rates = [];
+                    
+                    if (result.price && Array.isArray(result.price)) {
+                        rates = result.price; 
+                    } else if (result.data && result.data.price && Array.isArray(result.data.price)) { 
+                        rates = result.data.price; 
+                    } else if (Array.isArray(result.data)) {
+                        rates = result.data;
+                    }
+
+                    if (rates.length > 0) {
+                        serviceSelect.innerHTML = '';
+                        const allowedServices = ['JTR', 'REG', 'YES'];
+                        rates.forEach(rate => {
+                            const price = Number(rate.price || 0);
+                            const serviceName = rate.service_display || rate.service_code || 'REG';
+                            
+                            if (allowedServices.includes(serviceName.toUpperCase())) {
+                                const etdFrom = rate.etd_from || '';
+                                const etdThru = rate.etd_thru || '';
+                                
+                                let etdText = '';
+                                if (etdFrom && etdThru && etdFrom !== etdThru) {
+                                    etdText = ` (${etdFrom}-${etdThru} hari)`;
+                                } else if (etdFrom || etdThru) {
+                                    etdText = ` (${etdFrom || etdThru} hari)`;
+                                }
+                                
+                                if (price > 0) {
+                                    serviceSelect.innerHTML += `<option value="${price}" data-desc="JNE ${serviceName}">JNE ${serviceName}${etdText} - Rp ${price.toLocaleString('id-ID')}</option>`;
+                                }
+                            }
+                        });
+                        
+                        if (serviceSelect.options.length > 0) {
+                            updateGrandTotal();
+                            return; 
+                        }
+                    }
+                } 
+                
+                console.warn('Data response API JNE kosong / tidak dikenali:', result);
                 serviceSelect.innerHTML = `
-                    <option value="20000" data-desc="JNE REG">JNE REG (Reguler 2-3 Hari) - Rp 20.000</option>
-                    <option value="35000" data-desc="JNE YES">JNE YES (Yakin Esok Sampai) - Rp 35.000</option>
+                    <option value="25000" data-desc="JNE REG">JNE REG (2-3 hari) - Rp 25.000 (Sistem Default)</option>
+                    <option value="45000" data-desc="JNE YES">JNE YES (1 hari) - Rp 45.000 (Sistem Default)</option>
                 `;
-                    updateGrandTotal();
+                updateGrandTotal();
+                
+            } catch (err) {
+                console.warn('Gagal memanggil API JNE Cost:', err);
+                serviceSelect.innerHTML = `
+                    <option value="25000" data-desc="JNE REG">JNE REG (2-3 hari) - Rp 25.000 (Error Koneksi)</option>
+                    <option value="45000" data-desc="JNE YES">JNE YES (1 hari) - Rp 45.000 (Error Koneksi)</option>
+                `;
+                updateGrandTotal();
             }
         }
-
+        
         async function calculateBiteshipRates() {
             const lat = document.getElementById('cust-lat').value;
             const lng = document.getElementById('cust-lng').value;
-            const address = document.getElementById('cust-address').value;
             const serviceSelect = document.getElementById('cust-service');
 
-            if (!address) {
-                serviceSelect.innerHTML = '<option value="">-- Lengkapi Alamat Tujuan Dulu --</option>';
-                selectedOngkirCost = 0;
-                updateGrandTotal();
-                return;
-            }
-
-            if (!lat || !lng || Number.isNaN(parseFloat(lat)) || Number.isNaN(parseFloat(lng))) {
-                serviceSelect.innerHTML = '<option value="">-- Tentukan titik lokasi Maps terlebih dahulu --</option>';
-                selectedOngkirCost = 0;
-                updateGrandTotal();
-                return;
-            }
-
-            serviceSelect.innerHTML = '<option value="">Menghitung tarif kurir instan...</option>';
+            serviceSelect.innerHTML = '<option value="">Menghitung tarif kurir instan via Biteship...</option>';
 
             try {
-                const response = await fetch('/api/biteship/rates', {
+                const response = await fetch('/api/check-ongkir', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         destinationLatitude: parseFloat(lat),
                         destinationLongitude: parseFloat(lng),
-                        items: cart.map(i => ({ name: i.name, value: i.price, quantity: i.quantity, weight: i.weight || 500 }))
+                        couriers: 'gojek,grab',
+                        items: cart.map(i => ({ 
+                            name: i.name || 'Produk Mainan', 
+                            value: Number(i.price) > 0 ? Number(i.price) : 10000, 
+                            quantity: Number(i.quantity) || 1, 
+                            weight: Number(i.weight) || 500 
+                        }))
                     })
                 });
                 const result = await response.json();
@@ -1630,16 +1713,19 @@
                 if (result.success && result.pricing && result.pricing.length > 0) {
                     serviceSelect.innerHTML = '';
                     result.pricing.forEach(rate => {
-                        serviceSelect.innerHTML += `<option value="${rate.price}" data-desc="${rate.courier_name} - ${rate.courier_service_name}">${rate.courier_name} (${rate.courier_service_name}) - Rp ${rate.price.toLocaleString('id-ID')}</option>`;
+                        const courierName = (rate.courier_name || rate.company || '').toUpperCase();
+                        const serviceName = rate.courier_service_name || rate.type || 'Instant';
+                        const price = rate.price || 0;
+                        serviceSelect.innerHTML += `<option value="${price}" data-desc="${courierName} - ${serviceName}">${courierName} (${serviceName}) - Rp ${Number(price).toLocaleString('id-ID')}</option>`;
                     });
                     updateGrandTotal();
                 } else {
-                    serviceSelect.innerHTML = '<option value="15000" data-desc="Gojek Instant">Gojek Instant - Rp 15.000</option>';
+                    serviceSelect.innerHTML = '<option value="20000" data-desc="Gojek Instant">Gojek Instant - Rp 20.000 (Fallback)</option><option value="22000" data-desc="Grab Instant">Grab Instant - Rp 22.000 (Fallback)</option>';
                     updateGrandTotal();
                 }
             } catch (err) {
-                console.error(err);
-                serviceSelect.innerHTML = '<option value="15000" data-desc="Gojek Instant">Gojek Instant - Rp 15.000</option>';
+                console.error('Error fetching Biteship rates:', err);
+                serviceSelect.innerHTML = '<option value="20000" data-desc="Gojek Instant">Gojek Instant - Rp 20.000 (Fallback)</option><option value="22000" data-desc="Grab Instant">Grab Instant - Rp 22.000 (Fallback)</option>';
                 updateGrandTotal();
             }
         }
@@ -1659,14 +1745,7 @@
             const modal = document.getElementById('cart-modal');
             if (show) {
                 modal.classList.remove('hidden');
-
-                const type = document.getElementById('shipping-type-selector')?.value || 'jne';
-                if (type === 'instant') {
-                    setTimeout(() => {
-                        initMap();
-                        if (leafletMap) leafletMap.invalidateSize();
-                    }, 350);
-                }
+                switchShippingType();
             } else {
                 modal.classList.add('hidden');
             }
@@ -1687,8 +1766,12 @@
             const lat = document.getElementById('cust-lat').value;
             const lng = document.getElementById('cust-lng').value;
 
-            if (!firstName || !phone || !cityName || !district || !province || !address) {
-                return alert('Mohon lengkapi Nama depan, Telepon, Kota, Kecamatan, Provinsi, serta Alamat secara lengkap!');
+            if (!firstName || !phone || !address) {
+                return alert('Mohon lengkapi Nama depan, Telepon, serta Alamat secara lengkap!');
+            }
+
+            if (!selectedOngkirCost || selectedOngkirCost <= 0) {
+                return alert('Mohon klik tombol "Cek Tarif" dan pilih layanan kurir sebelum checkout!');
             }
 
             const checkoutBtn = document.getElementById('checkout-btn');
@@ -1697,24 +1780,34 @@
 
             const orderId = Math.floor(100000 + Math.random() * 900000).toString();
             const totalAmount = Number(subtotalAmount) + Number(selectedOngkirCost);
-            const fullAddressText = `${address}, Kec. ${district}, ${cityName}, Prov. ${province} ${postal ? '- ' + postal : ''} (${country})`;
+            
+            // Format alamat lengkap untuk JNE
+            const fullAddressText = `${address}${district ? ', Kec. ' + district : ''}${cityName ? ', ' + cityName : ''}${province ? ', Prov. ' + province : ''} ${postal ? '- ' + postal : ''} (${country})`;
             const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+
+            const selector = document.getElementById('shipping-type-selector');
+            const shippingType = selector ? selector.value : 'instant';
 
             const newOrder = {
                 orderId: orderId,
+                guest_id: guestId,
                 customer: {
                     name: fullName,
                     phone: phone,
                     address: fullAddressText,
                     mapsUrl: googleMapsUrl,
-                    courier: selectedServiceDescription || 'Kurir Reguler/Instan',
-                    payment: 'Xendit Payment Gateway'
+                    courier: selectedServiceDescription || 'Kurir Pilihan',
+                    payment: 'Midtrans Payment Gateway'
                 },
                 items: cart,
                 subtotal: Number(subtotalAmount),
                 ongkir: Number(selectedOngkirCost),
                 totalAmount: totalAmount,
-                status: 'Selesai'
+                status: 'Selesai',
+                destinationLatitude: lat,
+                destinationLongitude: lng,
+                courierCompany: shippingType === 'jne' ? 'jne' : (selectedServiceDescription.toLowerCase().includes('grab') ? 'grab' : 'gojek'),
+                courierType: shippingType === 'jne' ? 'reg' : (selectedServiceDescription.toLowerCase().includes('sameday') ? 'sameday' : 'instant')
             };
 
             try {
@@ -1724,19 +1817,68 @@
                     body: JSON.stringify(newOrder)
                 });
 
-                const res = await fetch('/api/create-xendit-invoice', {
+                if (shippingType === 'jne') {
+                    try {
+                        const jneDestCode = cityName ? cityName.toUpperCase() : (district ? district.toUpperCase() : postal);
+                        
+                        const awbParams = new URLSearchParams();
+                        awbParams.append('order_id', orderId);
+                        awbParams.append('destination_code', jneDestCode || 'JAKARTA');
+                        awbParams.append('weight', (Math.ceil(getTotalWeight() / 1000) || 1).toString());
+                        awbParams.append('qty', cart.reduce((acc, i) => acc + i.quantity, 0).toString());
+                        awbParams.append('receiver_name', fullName);
+                        awbParams.append('receiver_phone', phone);
+                        awbParams.append('receiver_address', fullAddressText);
+
+                        await fetch('/api/shipping/jne-generate-awb', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: awbParams.toString()
+                        });
+                    } catch (awbErr) {
+                        console.warn('Gagal membuat AWB otomatis:', awbErr);
+                    }
+                }
+
+                const res = await fetch('/api/create-midtrans-transaction', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.xml ? {} : JSON.stringify({ orderId: orderId, amount: totalAmount, customerName: fullName, description: `Pesanan TransGadget #${orderId}` })
+                    body: JSON.stringify({ 
+                        orderId: orderId, 
+                        amount: totalAmount, 
+                        customerName: fullName, 
+                        customerPhone: phone,
+                        itemDetails: cart.map(i => ({ id: i._id || i.id, price: Number(i.price), quantity: Number(i.quantity), name: i.name }))
+                    })
                 });
                 const result = await res.json();
 
-                if (result.success) {
-                    cart = [];
-                    saveAndRefreshCart();
-                    window.location.href = result.invoiceUrl;
+                if (result.success && result.token) {
+                    window.snap.pay(result.token, {
+                        onSuccess: function(payResult) {
+                            alert("Pembayaran berhasil!");
+                            cart = [];
+                            saveAndRefreshCart();
+                            window.location.href = `/customer.html?status=success&order_id=${orderId}`;
+                        },
+                        onPending: function(payResult) {
+                            alert("Menunggu pembayaran selesai...");
+                            console.log(payResult);
+                        },
+                        onError: function(payResult) {
+                            alert("Pembayaran gagal!");
+                            console.log(payResult);
+                            checkoutBtn.innerText = 'Proses Checkout Sekarang';
+                            checkoutBtn.disabled = false;
+                        },
+                        onClose: function() {
+                            alert('Anda menutup popup pembayaran tanpa menyelesaikannya.');
+                            checkoutBtn.innerText = 'Proses Checkout Sekarang';
+                            checkoutBtn.disabled = false;
+                        }
+                    });
                 } else {
-                    alert('Gagal membuat invoice pembayaran.');
+                    alert('Gagal membuat transaksi pembayaran: ' + (result.error || 'Unknown error'));
                     checkoutBtn.innerText = 'Proses Checkout Sekarang';
                     checkoutBtn.disabled = false;
                 }
@@ -1749,6 +1891,6 @@
         }
 
         initStore();
-    </script>
+    </script>   
 </body>
 </html>
