@@ -1327,22 +1327,19 @@
 
             // Urutkan: Barang Ready di atas, Habis di bawah, lalu berdasarkan yang terbaru
             filtered.sort((a, b) => {
-                const stockA = Number(a.stock) || 0;
-                const stockB = Number(b.stock) || 0;
+                // Cek apakah stok valid > 0
+                const isReadyA = Number(a.stock) > 0;
+                const isReadyB = Number(b.stock) > 0;
                 
-                // Prioritas 1: Stok (Habis ke bawah)
-                if (stockA > 0 && stockB === 0) return -1;
-                if (stockA === 0 && stockB > 0) return 1;
+                // Prioritas 1: Ready di atas, Habis di bawah
+                if (isReadyA && !isReadyB) return -1;
+                if (!isReadyA && isReadyB) return 1;
                 
                 // Prioritas 2: Barang Baru di atas (berdasarkan createdAt)
                 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
                 
-                if (dateA !== dateB) {
-                    return dateB - dateA;
-                }
-                
-                return 0; // Jika tidak ada timestamp, biarkan urutan bawaan dari database
+                return dateB - dateA;
             });
 
             displayProducts(filtered);
