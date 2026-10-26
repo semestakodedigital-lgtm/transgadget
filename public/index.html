@@ -1639,7 +1639,7 @@
 
                     if (rates.length > 0) {
                         serviceSelect.innerHTML = '';
-                        const allowedServices = ['JTR', 'REG', 'YES'];
+                        const allowedServices = ['JTR', 'REG', 'YES', 'OKE', 'CTC', 'CTCYES', 'CTCOKE'];
                         rates.forEach(rate => {
                             const price = Number(rate.price || 0);
                             const serviceName = rate.service_display || rate.service_code || 'REG';
