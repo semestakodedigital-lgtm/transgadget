@@ -17,7 +17,7 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <!-- Midtrans Snap Script -->
-    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-pIHMPSzRFTRI7Ucr"></script>
+    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-plHMPSzRFTRI7Ucr"></script>
 
     <!-- Logo Web (Favicon) -->
     <link rel="icon" type="image/png" href="/images/logo.png">
@@ -507,6 +507,36 @@
         </div>
     </div>
 
+    <!-- MODAL RESI / PEMBAYARAN BERHASIL (BARU DITAMBAHKAN) -->
+    <div id="success-receipt-modal" class="fixed inset-0 z-[60] overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen px-4 py-8">
+            <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity" onclick="closeReceiptModal()"></div>
+            
+            <div class="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-sm w-full z-10 p-8 text-center border border-slate-100">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-6">
+                    <svg class="h-10 w-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900 mb-2">Pembayaran Berhasil!</h3>
+                <p class="text-xs sm:text-sm text-slate-500 mb-6">Terima kasih atas pesanan Anda.</p>
+                
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-6 text-left shadow-inner">
+                    <p class="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Nomor Resi / Order ID</p>
+                    <p id="receipt-order-id" class="text-lg sm:text-xl font-black text-indigo-600">#</p>
+                </div>
+                
+                <p class="text-[10px] sm:text-xs text-slate-500 mb-6 leading-relaxed">
+                    Pesanan Anda sedang kami proses. Anda dapat memantau status pesanan dan nomor resi kurir (jika sudah tersedia) melalui menu <strong class="text-slate-700">📦 Ulasan / Riwayat Pesanan</strong> di bagian atas layar.
+                </p>
+                
+                <button onclick="closeReceiptModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 sm:py-3.5 rounded-xl text-[11px] sm:text-xs uppercase tracking-wider transition shadow-md shadow-indigo-600/20">
+                    Selesai & Lanjut Belanja
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- KOMPONEN LIVE CHAT MELAYANG -->
     <div id="chat-widget" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
         <div id="chat-window" class="hidden w-64 sm:w-80 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col mb-3 sm:mb-4 border border-slate-200 transition-all duration-300">
@@ -754,7 +784,7 @@
                         orderId: ord.orderId || ord._id,
                         date: ord.createdAt ? new Date(ord.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Baru saja',
                         totalAmount: ord.totalAmount || ord.subtotal || 0,
-                        status: ord.status || 'Selesai',
+                        status: ord.status || 'Menunggu Pembayaran',
                         items: (ord.items || []).map(item => {
                             const pId = item.productId || item._id || item.id || 'default';
                             const isAlreadyReviewed = reviewedStorage[ord.orderId + '_' + pId] || item.reviewed || false;
@@ -1800,7 +1830,7 @@
                 subtotal: Number(subtotalAmount),
                 ongkir: Number(selectedOngkirCost),
                 totalAmount: totalAmount,
-                status: 'Selesai',
+                status: 'Menunggu Pembayaran',
                 destinationLatitude: lat,
                 destinationLongitude: lng,
                 courierCompany: shippingType === 'jne' ? 'jne' : (selectedServiceDescription.toLowerCase().includes('grab') ? 'grab' : 'gojek'),
@@ -1856,7 +1886,7 @@
                             alert("Pembayaran berhasil!");
                             cart = [];
                             saveAndRefreshCart();
-                            window.location.href = `/customer.html?status=success&order_id=${orderId}`;
+                            window.location.href = `/success.html?status=success&order_id=${orderId}`;
                         },
                         onPending: function(payResult) {
                             alert("Menunggu pembayaran selesai...");
@@ -1887,7 +1917,30 @@
             }
         }
 
+        // ==========================================
+        // FITUR CEK STATUS PEMBAYARAN & POPUP RESI (BARU)
+        // ==========================================
+        function checkPaymentStatus() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const orderId = urlParams.get('order_id');
+            
+            if (status === 'success' && orderId) {
+                document.getElementById('receipt-order-id').innerText = '#' + orderId;
+                document.getElementById('success-receipt-modal').classList.remove('hidden');
+                
+                // Bersihkan URL dari parameter agar pop-up tidak muncul lagi saat halaman di-refresh
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({path: newUrl}, '', newUrl);
+            }
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('success-receipt-modal').classList.add('hidden');
+        }
+
         initStore();
+        checkPaymentStatus(); // Panggil pengecekan saat halaman dimuat
     </script>   
 </body>
 </html>

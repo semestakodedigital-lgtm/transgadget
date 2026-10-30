@@ -1714,12 +1714,24 @@
             }
         }
 
+        // ==========================================
+        // MANAJEMEN PESANAN (DIPERBARUI DENGAN FILTER & CETAK RESI)
+        // ==========================================
         async function fetchAdminOrders() {
             try {
                 const response = await fetch('/api/orders');
                 const result = await response.json();
-                globalOrders = result.data || [];
-                renderOrdersPage(1);
+                if (result.success) {
+                    // FILTER DIPERKETAT: Hanya ambil pesanan yang statusnya sah/sudah dibayar
+                    const validStatuses = ['Menunggu Pembayaran', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
+                    
+                    globalOrders = result.data.filter(order => {
+                        const currentStatus = (order.status || '').trim();
+                        return validStatuses.includes(currentStatus);
+                    }) || [];
+                    
+                    renderOrdersPage(1);
+                }
             } catch (error) {
                 console.error('Gagal mengambil data pesanan:', error);
             }
@@ -1728,15 +1740,15 @@
         function renderOrdersPage(page) {
             currentPageOrders = page;
             const container = document.getElementById('admin-orders-container');
-            document.getElementById('order-count').innerText = `${globalOrders.length} Pesanan`;
+            document.getElementById('order-count').innerText = `${globalOrders.length} Pesanan Lunas`;
             container.innerHTML = '';
 
             if (globalOrders.length === 0) {
                 container.innerHTML = `
                     <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
                         <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">📦</div>
-                        <h3 class="font-bold text-slate-800 text-sm">Belum Ada Pesanan</h3>
-                        <p class="text-xs text-slate-400">Pesanan dari pelanggan yang melakukan checkout akan muncul di sini.</p>
+                        <h3 class="font-bold text-slate-800 text-sm">Belum Ada Pesanan Lunas</h3>
+                        <p class="text-xs text-slate-400">Pesanan dari pelanggan yang telah berhasil dibayar akan muncul di sini.</p>
                     </div>
                 `;
                 document.getElementById('order-pagination').innerHTML = '';
@@ -1771,52 +1783,55 @@
                 const custPhone = (order.customer && (order.customer.phone || order.customer.whatsapp)) || order.phone || order.customerPhone || '-';
                 const custAddress = (order.customer && order.customer.address) || order.address || '-';
                 const custCourier = (order.customer && order.customer.courier) || order.courier || 'Kurir Reguler / Instan';
-                const paymentMethod = (order.customer && order.customer.payment) || order.paymentMethod || 'Xendit Payment Gateway';
+                const paymentMethod = (order.customer && order.customer.payment) || order.paymentMethod || 'Midtrans Payment Gateway';
                 const mapsUrl = (order.customer && order.customer.mapsUrl) || order.mapsUrl || '';
 
                 const amount = Number(order.totalAmount || order.total || 0);
                 const ongkir = Number(order.ongkir || 0);
                 const subtotal = Number(order.subtotal || (amount - ongkir));
 
-                let statusBtnClass = "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100";
-                let statusText = "Belum Diproses";
+                let statusBtnClass = "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100";
+                let statusText = "Belum Dibayar";
+                let btnAction = `alert('Pesanan ini masih menunggu pembayaran dari pelanggan!')`;
                 
-                if (currentStatus === 'Diproses oleh Admin') {
+                if (currentStatus === 'Belum Diproses') {
+                    statusBtnClass = "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100";
+                    statusText = "Baru Dibayar";
+                    btnAction = `cycleOrderStatus("${order._id}", "${currentStatus}")`;
+                } else if (currentStatus === 'Diproses oleh Admin' || currentStatus === 'Diproses / Dikirim') {
                     statusBtnClass = "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100";
-                    statusText = "Diproses oleh Admin";
+                    statusText = "Diproses / Dikirim";
+                    btnAction = `cycleOrderStatus("${order._id}", "${currentStatus}")`;
                 } else if (currentStatus === 'Selesai') {
                     statusBtnClass = "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100";
                     statusText = "Selesai";
+                    btnAction = `cycleOrderStatus("${order._id}", "${currentStatus}")`;
                 }
 
                 const cleanPhone = custPhone !== '-' ? custPhone.replace(/\D/g, '').replace(/^0/, '62') : '';
                 const message = encodeURIComponent(
                     `Halo Kak *${custName}*, pesanan dengan ID *#${orderId}* di *TransGadget* saat ini berstatus: *${currentStatus}*.\n\nTotal Belanja: *Rp ${amount.toLocaleString('id-ID')}*\nKurir: *${custCourier}*\n\nTerima kasih telah berbelanja di TransGadget!`
                 );
+                
                 const waButtonHtml = cleanPhone ? `
-                    <a href="https://wa.me/${cleanPhone}?text=${message}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-center transition shadow-sm flex items-center justify-center gap-1.5">
+                    <a href="https://wa.me/${cleanPhone}?text=${message}" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-center transition shadow-sm flex items-center justify-center gap-1.5 mt-2">
                         <span>💬 Chat WA</span>
                     </a>
-                ` : `
-                    <span class="flex-1 bg-slate-100 text-slate-400 font-bold py-2.5 px-3 rounded-xl text-center text-[11px] flex items-center justify-center cursor-not-allowed">
-                        💬 No Telp Kosong
-                    </span>
-                `;
+                ` : '';
 
-                let actionDeleteButton = '';
-                if (currentStatus === 'Selesai') {
-                    actionDeleteButton = `
-                        <span class="bg-slate-100 text-slate-400 font-bold py-2.5 px-3 rounded-xl text-center cursor-not-allowed text-[11px] flex items-center justify-center" title="Pesanan selesai terkunci dan tidak dapat dihapus">
-                            🔒 Terkunci
-                        </span>
-                    `;
-                } else {
-                    actionDeleteButton = `
-                        <button onclick="deleteSingleOrder('${order._id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 px-3 rounded-xl transition">
-                            🗑️ Hapus
-                        </button>
-                    `;
-                }
+                // TOMBOL CETAK RESI JNE / BITESHIP
+                const isJNE = custCourier.toLowerCase().includes('jne');
+                const isInstant = custCourier.toLowerCase().includes('gojek') || custCourier.toLowerCase().includes('grab') || custCourier.toLowerCase().includes('instant');
+                
+                const btnPrintHtml = currentStatus === 'Menunggu Pembayaran' ? `
+                    <button onclick="alert('Pesanan belum dibayar. Tidak dapat mencetak resi.')" class="w-full mt-2 bg-slate-400 text-white font-bold py-2.5 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 cursor-not-allowed">
+                        🖨️ Cetak Resi (Belum Dibayar)
+                    </button>
+                ` : `
+                    <button onclick='prosesDanCetakResiAsli(${JSON.stringify(order).replace(/'/g, "&#39;")})' class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5">
+                        🖨️ Proses & Cetak Resi (${isJNE ? 'JNE' : (isInstant ? 'Gojek/Grab' : 'Kurir')})
+                    </button>
+                `;
 
                 container.innerHTML += `
                     <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition space-y-5">
@@ -1827,8 +1842,8 @@
                                 <span class="text-xs font-semibold text-slate-400">🕒 ${orderDate}</span>
                             </div>
                             <div>
-                                <button onclick='cycleOrderStatus("${order._id}", "${currentStatus}")' class="${statusBtnClass} text-[10px] font-bold px-3 py-1 rounded-full transition shadow-sm cursor-pointer">
-                                    ${statusText} 🔄
+                                <button onclick='${btnAction}' class="${statusBtnClass} text-[10px] font-bold px-3 py-1 rounded-full transition shadow-sm ${currentStatus === 'Menunggu Pembayaran' ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}">
+                                    ${statusText} ${currentStatus !== 'Menunggu Pembayaran' ? '🔄' : '⏳'}
                                 </button>
                             </div>
                         </div>
@@ -1871,14 +1886,13 @@
                                     </div>
                                 </div>
 
-                                <div class="flex gap-2 pt-4">
+                                <div>
+                                    ${btnPrintHtml}
                                     ${waButtonHtml}
-                                    ${actionDeleteButton}
                                 </div>
                             </div>
 
                         </div>
-
                     </div>
                 `;
             });
@@ -1887,10 +1901,11 @@
         }
 
         async function cycleOrderStatus(orderMongoId, currentStatus) {
-            let nextStatus = 'Belum Diproses';
+            let nextStatus = 'Diproses / Dikirim';
+            
             if (currentStatus === 'Belum Diproses') {
-                nextStatus = 'Diproses oleh Admin';
-            } else if (currentStatus === 'Diproses oleh Admin') {
+                nextStatus = 'Diproses / Dikirim';
+            } else if (currentStatus === 'Diproses / Dikirim' || currentStatus === 'Diproses oleh Admin') {
                 nextStatus = 'Selesai';
             } else {
                 nextStatus = 'Selesai';
@@ -1910,6 +1925,157 @@
             await fetch(`/api/orders/${orderMongoId}`, { method: 'DELETE' });
             fetchAdminOrders();
             fetchFinancialReport();
+        }
+
+        // ==========================================
+        // FUNGSI PROSES & CETAK RESI (JNE / BITESHIP)
+        // ==========================================
+        async function prosesDanCetakResiAsli(order) {
+            const courierName = (order.customer?.courier || '').toLowerCase();
+            const isJNE = courierName.includes('jne');
+            const isInstant = courierName.includes('gojek') || courierName.includes('grab') || courierName.includes('instant');
+
+            let nomorResiAsli = "MENUNGGU PICKUP";
+
+            // 1. INTEGRASI JNE: Generate Resi (AWB) saat tombol cetak diklik
+            if (isJNE) {
+                // DIPERBARUI: Cek apakah resi JNE sudah ada di database (hasil dari Order.js yang baru)
+                if (order.resi_jne && order.resi_jne.trim() !== '') {
+                    nomorResiAsli = order.resi_jne;
+                } else {
+                    try {
+                        const totalBerat = order.items.reduce((acc, i) => acc + ((i.weight || 500) * i.quantity), 0);
+                        const totalBarang = order.items.reduce((acc, i) => acc + i.quantity, 0);
+                        
+                        // Ekstrak nama kota dari alamat untuk JNE Destination Code
+                        const addressString = (order.customer?.address || '').toUpperCase();
+                        let jneDestCode = 'JAKARTA'; 
+                        if(addressString.includes('BANDUNG')) jneDestCode = 'BANDUNG';
+                        else if(addressString.includes('SURABAYA')) jneDestCode = 'SURABAYA';
+                        else if(addressString.includes('SEMARANG')) jneDestCode = 'SEMARANG';
+
+                        const awbParams = new URLSearchParams();
+                        awbParams.append('order_id', order.orderId);
+                        awbParams.append('destination_code', jneDestCode);
+                        awbParams.append('weight', (Math.ceil(totalBerat / 1000) || 1).toString());
+                        awbParams.append('qty', totalBarang.toString());
+                        awbParams.append('receiver_name', order.customer?.name || '-');
+                        awbParams.append('receiver_phone', order.customer?.phone || '-');
+                        awbParams.append('receiver_address', order.customer?.address || '-');
+
+                        // Tembak API JNE (melalui server backend)
+                        const response = await fetch('/api/shipping/jne-generate-awb', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: awbParams.toString()
+                        });
+                        const resData = await response.json();
+
+                            if (resData.success && resData.data) {
+                            // Cek berbagai kemungkinan struktur path dari respon API JNE
+                            if (resData.data.cnote_no) {
+                                nomorResiAsli = resData.data.cnote_no;
+                            } else if (resData.data.detail && resData.data.detail.length > 0) {
+                                nomorResiAsli = resData.data.detail[0].cnote_no || resData.data.detail[0].airwaybill;
+                            } else if (resData.data.airwaybill) {
+                                nomorResiAsli = resData.data.airwaybill;
+                            } else {
+                                nomorResiAsli = "JNE-" + order.orderId;
+                            }
+                        } else {
+                            nomorResiAsli = "JNE-" + order.orderId; // Fallback resi jika API kosong/gagal
+                        }
+                    } catch (err) {
+                        console.error("Gagal cetak JNE", err);
+                        nomorResiAsli = "ERROR KONEKSI API JNE";
+                    }
+                }
+            } 
+            // 2. INTEGRASI BITESHIP (GOJEK/GRAB)
+            else if (isInstant) {
+                nomorResiAsli = "";
+            }
+
+            // 3. UBAH STATUS OTOMATIS KE "Diproses" JIKA MASIH BARU
+            if (order.status === 'Belum Diproses') {
+                 cycleOrderStatus(order._id || order.id, order.status);
+            }
+
+            // 4. TAMPILKAN JENDELA CETAK
+            const printWindow = window.open('', '_blank', 'width=800,height=900');
+            
+            const itemsListHtml = (order.items || []).map(item => `
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 5px;">
+                    <span><strong>${item.quantity}x</strong> ${item.name}</span>
+                </div>
+            `).join('');
+
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Cetak Label Pengiriman - #${order.orderId}</title>
+                <style>
+                    @page { size: 100mm 150mm; margin: 0; }
+                    body { font-family: Arial, sans-serif; padding: 10px; color: #000; box-sizing: border-box; width: 100%; margin: 0; }
+                    .label-card { border: 2px solid #000; padding: 10px; border-radius: 6px; background: #fff; max-width: 95mm; margin: auto; }
+                    .resi-box { background: #000; color: #fff; padding: 8px; text-align: center; margin: 8px 0; font-size: 15px; font-weight: bold; letter-spacing: 1px; border-radius: 4px; word-break: break-all; }
+                    .section-title { font-size: 10px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; color: #444; }
+                    .address-box { margin-bottom: 8px; font-size: 11px; line-height: 1.3; border-bottom: 1.5px solid #000; padding-bottom: 8px; }
+                    .flex-between { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; }
+                    .item-row { font-size: 11px; margin-bottom: 4px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; display: flex; justify-content: space-between; gap: 5px; }
+                    @media print { body { padding: 0; margin: 0; } .no-print { display: none; } }
+                </style>
+            </head>
+            <body>
+                <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+                    <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 14px;">🖨️ Cetak Struk ke Printer</button>
+                </div>
+
+                <div class="label-card">
+                    <div class="flex-between">
+                        <div>
+                            <strong style="font-size:18px; display:block;">TransGadget</strong>
+                            <span style="font-size:10px;">Order: #${order.orderId}</span>
+                        </div>
+                        <div style="font-size: 14px; font-weight: 900; text-align: right;">${order.customer?.courier || 'KURIR'}</div>
+                    </div>
+
+                    <div class="resi-box">
+                        ${isJNE ? 'RESI JNE: <br>' : ''} ${nomorResiAsli}
+                    </div>
+
+                    <div class="address-box">
+                        <div class="section-title">📍 PENERIMA:</div>
+                        <strong style="font-size: 14px;">${order.customer?.name || '-'}</strong><br>
+                        📞 ${order.customer?.phone || '-'}<br>
+                        <span>${order.customer?.address || '-'}</span>
+                    </div>
+
+                    <div class="address-box" style="border-bottom: 1.5px solid #000;">
+                        <div class="section-title">🏢 PENGIRIM:</div>
+                        <strong>TransGadget Official</strong> (08119238168)<br>
+                        Ruko Elang Laut Boulevard C-42, PIK, Jakarta Utara
+                    </div>
+
+                    <div>
+                        <div class="section-title">📦 ISI PAKET:</div>
+                        <div style="max-height: 90px; overflow-hidden;">
+                            ${(order.items || []).map(item => `
+                                <div class="item-row">
+                                    <span><strong>${item.quantity}x</strong> ${item.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                <script>window.onload = function() { window.print(); }<\/script>
+            </body>
+            </html>
+            `;
+            
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
         }
 
         async function fetchFinancialReport() {

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembayaran Berhasil - TransGadget Indonesia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col justify-center items-center p-4">
+
+  <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 text-center border border-slate-100">
+    <!-- Icon Centang Hijau -->
+    <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
+
+    <h1 class="text-2xl font-bold text-slate-800 mb-1">Pembayaran Berhasil!</h1>
+    <p class="text-slate-500 text-sm mb-6">Terima kasih telah berbelanja di TransGadget Indonesia. Pesanan Anda sedang kami proses.</p>
+
+    <!-- Ringkasan Order -->
+    <div class="bg-slate-50 rounded-xl p-4 text-left mb-6 border border-slate-100 space-y-3 text-sm">
+      <div class="flex justify-between border-b border-slate-200 pb-2">
+        <span class="text-slate-500">Order ID</span>
+        <span id="order-id" class="font-bold text-slate-800">-</span>
+      </div>
+      <div class="flex justify-between border-b border-slate-200 pb-2">
+        <span class="text-slate-500">Status Pembayaran</span>
+        <span id="order-status" class="font-semibold text-emerald-600">Berhasil</span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-slate-500">Waktu Transaksi</span>
+        <span id="order-date" class="font-medium text-slate-700">-</span>
+      </div>
+    </div>
+
+    <!-- Tombol Aksi -->
+    <div class="space-y-3">
+      <a href="/index.html" class="block w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition-colors text-sm">
+        Kembali ke Beranda
+      </a>
+      <a id="wa-btn" href="#" target="_blank" class="block w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-md transition-colors text-sm flex items-center justify-center gap-2">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+        </svg>
+        Konfirmasi via WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // Mengambil parameter dari URL (contoh: success.html?order_id=418727&status=success)
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('order_id') || urlParams.get('orderId') || 'TRX-UNKNOWN';
+    const status = urlParams.get('status');
+
+    document.getElementById('order-id').innerText = orderId;
+    document.getElementById('order-date').innerText = new Date().toLocaleString('id-ID', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+
+    if (status === 'pending') {
+      document.getElementById('order-status').innerText = 'Menunggu Pembayaran';
+      document.getElementById('order-status').className = 'font-semibold text-amber-500';
+    }
+
+    // Fungsi otomatis memperbarui status pesanan di database backend menjadi 'Belum Diproses' saat halaman sukses dimuat
+    async function updateOrderStatusToPaid(targetOrderId) {
+        if (!targetOrderId || targetOrderId === 'TRX-UNKNOWN') return;
+        try {
+            const res = await fetch('/api/orders');
+            const data = await res.json();
+            if (data.success && data.data) {
+                const currentOrder = data.data.find(o => String(o.orderId) === String(targetOrderId));
+                if (currentOrder && currentOrder.status === 'Menunggu Pembayaran') {
+                    await fetch(`/api/orders/${currentOrder._id}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'Belum Diproses' })
+                    });
+                    console.log("Status pesanan di database berhasil diperbarui menjadi Belum Diproses.");
+                }
+            }
+        } catch (err) {
+            console.error("Gagal memperbarui status pesanan:", err);
+        }
+    }
+
+    // Panggil fungsi pembaruan status
+    updateOrderStatusToPaid(orderId);
+
+    // Format tautan WhatsApp otomatis dengan isi Order ID
+    const pesan = encodeURIComponent(`Halo TransGadget, saya ingin konfirmasi pembayaran untuk pesanan dengan Order ID: #${orderId}`);
+    document.getElementById('wa-btn').href = `https://wa.me/628119238168?text=${pesan}`;
+  </script>
+
+</body>
+</html>

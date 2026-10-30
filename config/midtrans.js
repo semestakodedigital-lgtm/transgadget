@@ -1,3 +1,4 @@
+require('dotenv').config(); // DITAMBAHKAN: Memastikan variabel environment selalu dimuat
 const midtransClient = require('midtrans-client');
 
 // Membersihkan spasi atau karakter tersembunyi (\r) dari file .env
