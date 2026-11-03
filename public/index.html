@@ -161,8 +161,15 @@
             <span id="product-count" class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-600 bg-white/80 border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">Memuat...</span>
         </div>
 
-        <!-- Grid Produk -->
-        <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4"></div>
+        <!-- Grid Produk Ready -->
+        <div id="product-grid-ready" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 mb-8"></div>
+        
+        <!-- Grid Produk Habis -->
+        <div id="section-habis" class="hidden mt-10">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2 mb-6">HABIS</h2>
+            <div id="product-grid-empty" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4"></div>
+        </div>
+
     </main>
 
     <!-- Product Detail Modal -->
@@ -200,7 +207,13 @@
                             <span id="modal-product-weight" class="text-[10px] sm:text-xs font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg"></span>
                         </div>
 
-                        <div class="flex items-center justify-between bg-indigo-50/50 border border-indigo-100/80 px-3 py-2 rounded-xl text-[11px] sm:text-xs">
+                        <!-- Tombol Bagikan Produk -->
+                        <button onclick="shareActiveProduct()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs uppercase tracking-wider transition mt-2 flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                            Bagikan Link Produk
+                        </button>
+
+                        <div class="flex items-center justify-between bg-indigo-50/50 border border-indigo-100/80 px-3 py-2 rounded-xl text-[11px] sm:text-xs mt-1">
                             <span class="font-bold text-slate-600 uppercase tracking-wider">📦 Total Dibeli:</span>
                             <span id="modal-product-sold" class="font-extrabold text-indigo-600">0 terjual</span>
                         </div>
@@ -1153,7 +1166,7 @@
         }
 
         function scrollToProducts() {
-            const grid = document.getElementById('product-grid');
+            const grid = document.getElementById('product-grid-ready');
             if (grid) {
                 grid.scrollIntoView({ behavior: 'smooth' });
             }
@@ -1275,62 +1288,95 @@
 
                 applyFilters();
                 updateCartUI();
+
+                // Cek apakah ada query ID pada link yang dibagikan untuk otomatis membuka Modal Produk
+                const urlParams = new URLSearchParams(window.location.search);
+                const autoOpenId = urlParams.get('id');
+                if (autoOpenId) {
+                    setTimeout(() => {
+                        openDetailModal(autoOpenId);
+                    }, 200);
+                }
+
             } catch (error) {
                 console.error('Gagal memuat katalog:', error);
             }
         }
 
+        // Fungsi baru untuk render satu produk (membantu pemisahan produk ready dan habis)
+        function createProductCard(product, isAvailable) {
+            const mediaList = (product.images && product.images.length > 0) ? product.images : (product.image ? [product.image] : ['https://via.placeholder.com/300?text=No+Image']);
+            const mainMedia = mediaList[0];
+            const isVideo = mainMedia.endsWith('.mp4') || mainMedia.includes('video') || mainMedia.startsWith('data:video');
+
+            let mediaHtml = isVideo ? `<video src="${mainMedia}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" muted></video>` : `<img src="${mainMedia}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
+
+            const productId = String(product._id || product.id || 'default');
+            const productReviews = globalReviews.filter(r => String(r.productId?._id || r.productId) === productId || r.productName === product.name);
+            const reviewCount = productReviews.length;
+            const avgRating = reviewCount > 0 ? (productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / reviewCount).toFixed(1) : "5.0";
+            
+            const soldCount = getProductSoldCount(product);
+            const cardOpacityClass = isAvailable ? '' : 'opacity-85 grayscale-[15%]';
+
+            return `
+                <div onclick="openDetailModal('${productId}')" class="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer ${cardOpacityClass}">
+                    <div>
+                        <div class="relative w-full aspect-square bg-slate-900 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
+                            ${mediaHtml}
+                            <span class="absolute top-2 left-2 bg-indigo-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">${product.category || 'Action Figure'}</span>
+                            <span class="absolute top-2 right-2 ${isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-800 text-white'} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">${isAvailable ? 'Ready' : 'Habis'}</span>
+                        </div>
+                        <h3 class="font-bold text-slate-900 text-[11px] sm:text-sm tracking-tight group-hover:text-indigo-600 transition mb-1 line-clamp-2">${product.name}</h3>
+                        
+                        <div class="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 my-1.5">
+                            <div class="flex items-center space-x-1">
+                                <span class="text-amber-400 font-bold">★</span>
+                                <span class="font-bold text-slate-800">${avgRating}</span>
+                                <span class="text-slate-400">(${reviewCount})</span>
+                            </div>
+                            <span class="text-slate-500 font-medium">${soldCount} terjual</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-sm sm:text-base font-black text-slate-900 mb-3 tracking-tight">Rp ${Number(product.price).toLocaleString('id-ID')}</div>
+                        <div class="w-full bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-bold py-2 rounded-lg text-[10px] sm:text-[11px] transition-all uppercase tracking-wider text-center">Lihat Detail</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Modifikasi fungsi render list produk untuk dipisahkan Ready vs Habis
         function displayProducts(products) {
-            const grid = document.getElementById('product-grid');
-            grid.innerHTML = '';
+            const readyGrid = document.getElementById('product-grid-ready');
+            const emptyGrid = document.getElementById('product-grid-empty');
+            const sectionHabis = document.getElementById('section-habis');
+            
+            readyGrid.innerHTML = '';
+            emptyGrid.innerHTML = '';
             document.getElementById('product-count').innerText = `${products.length} Mainan Tersedia`;
 
             if (products.length === 0) {
-                grid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-12 text-sm font-medium">Tidak ada mainan yang ditemukan.</p>`;
+                readyGrid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-12 text-sm font-medium">Tidak ada mainan yang ditemukan.</p>`;
+                sectionHabis.classList.add('hidden');
                 return;
             }
 
-            products.forEach((product) => {
-                const isAvailable = product.stock > 0;
-                const mediaList = (product.images && product.images.length > 0) ? product.images : (product.image ? [product.image] : ['https://via.placeholder.com/300?text=No+Image']);
-                const mainMedia = mediaList[0];
-                const isVideo = mainMedia.endsWith('.mp4') || mainMedia.includes('video') || mainMedia.startsWith('data:video');
+            const readyProducts = products.filter(p => Number(p.stock) > 0);
+            const emptyProducts = products.filter(p => Number(p.stock) <= 0);
 
-                let mediaHtml = isVideo ? `<video src="${mainMedia}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" muted></video>` : `<img src="${mainMedia}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
+            if (readyProducts.length > 0) {
+                readyGrid.innerHTML = readyProducts.map(p => createProductCard(p, true)).join('');
+            } else {
+                readyGrid.innerHTML = `<p class="text-slate-400 col-span-full text-center py-6 text-sm font-medium">Tidak ada produk ready stock saat ini.</p>`;
+            }
 
-                const productId = String(product._id || product.id || 'default');
-                const productReviews = globalReviews.filter(r => String(r.productId?._id || r.productId) === productId || r.productName === product.name);
-                const reviewCount = productReviews.length;
-                const avgRating = reviewCount > 0 ? (productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / reviewCount).toFixed(1) : "5.0";
-                
-                const soldCount = getProductSoldCount(product);
-
-                grid.innerHTML += `
-                    <div onclick="openDetailModal('${productId}')" class="bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
-                        <div>
-                            <div class="relative w-full aspect-square bg-slate-900 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
-                                ${mediaHtml}
-                                <span class="absolute top-2 left-2 bg-indigo-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">${product.category || 'Action Figure'}</span>
-                                <span class="absolute top-2 right-2 ${isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">${isAvailable ? 'Ready' : 'Habis'}</span>
-                            </div>
-                            <h3 class="font-bold text-slate-900 text-[11px] sm:text-sm tracking-tight group-hover:text-indigo-600 transition mb-1 line-clamp-2">${product.name}</h3>
-                            
-                            <div class="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 my-1.5">
-                                <div class="flex items-center space-x-1">
-                                    <span class="text-amber-400 font-bold">★</span>
-                                    <span class="font-bold text-slate-800">${avgRating}</span>
-                                    <span class="text-slate-400">(${reviewCount})</span>
-                                </div>
-                                <span class="text-slate-500 font-medium">${soldCount} terjual</span>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="text-sm sm:text-base font-black text-slate-900 mb-3 tracking-tight">Rp ${Number(product.price).toLocaleString('id-ID')}</div>
-                            <div class="w-full bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-bold py-2 rounded-lg text-[10px] sm:text-[11px] transition-all uppercase tracking-wider text-center">Lihat Detail</div>
-                        </div>
-                    </div>
-                `;
-            });
+            if (emptyProducts.length > 0) {
+                sectionHabis.classList.remove('hidden');
+                emptyGrid.innerHTML = emptyProducts.map(p => createProductCard(p, false)).join('');
+            } else {
+                sectionHabis.classList.add('hidden');
+            }
         }
 
         function filterByCategory(category, element) {
@@ -1355,20 +1401,10 @@
                 return matchesKeyword && matchesCategory;
             });
 
-            // Urutkan: Barang Ready di atas, Habis di bawah, lalu berdasarkan yang terbaru
+            // Urutkan berdasarkan produk terbaru (createdAt)
             filtered.sort((a, b) => {
-                // Cek apakah stok valid > 0
-                const isReadyA = Number(a.stock) > 0;
-                const isReadyB = Number(b.stock) > 0;
-                
-                // Prioritas 1: Ready di atas, Habis di bawah
-                if (isReadyA && !isReadyB) return -1;
-                if (!isReadyA && isReadyB) return 1;
-                
-                // Prioritas 2: Barang Baru di atas (berdasarkan createdAt)
                 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                
                 return dateB - dateA;
             });
 
@@ -1407,6 +1443,26 @@
             updateSliderView();
             renderProductReviewsForModal();
             toggleDetailModal(true);
+        }
+        
+        // FUNGSI UNTUK BERBAGI PRODUK
+        function shareActiveProduct() {
+            if (!activeProduct) return;
+            const productId = String(activeProduct._id || activeProduct.id);
+            const baseUrl = window.location.href.split('?')[0];
+            const shareUrl = `${baseUrl}?id=${productId}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'TransGadget Indonesia',
+                    text: `Cek ${activeProduct.name} di TransGadget!`,
+                    url: shareUrl,
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert('Link produk berhasil disalin ke clipboard!');
+                });
+            }
         }
 
         function updateModalQuantity(change) {
@@ -1461,6 +1517,10 @@
             } else {
                 document.getElementById('detail-slider-video').pause();
                 modal.classList.add('hidden');
+                
+                // Menghilangkan ?id= dari URL setelah modal ditutup agar refresh tidak memunculkan modal lagi
+                const baseUrl = window.location.href.split('?')[0];
+                window.history.replaceState({}, document.title, baseUrl);
             }
         }
 
