@@ -120,12 +120,6 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Menyediakan akses folder publik agar file statis lain tetap bisa diakses dari browser
-app.use(express.static('public'));
-
-// Untuk sitemap.xml
-app.use(express.static(path.join(__dirname, 'public')));
-
 // -------------------------------------------------------------
 // KONFIGURASI CLOUDINARY & MULTER STORAGE
 // -------------------------------------------------------------
@@ -149,10 +143,95 @@ const upload = multer({ storage: storage });
 // 1. Menjalankan Koneksi ke Database MongoDB
 connectDB();
 
-// Root Endpoint
-app.get('/', (req, res) => {
-    res.json({ message: 'Selamat datang di API Transgadget' });
+// -------------------------------------------------------------
+// SERVER-SIDE RENDERING (SSR) UNTUK METATAGS
+// Mencegah WhatsApp/Sosmed hanya melihat logo default
+// -------------------------------------------------------------
+app.get('/', async (req, res, next) => {
+    try {
+        const { id } = req.query;
+
+        // Jika tidak ada ID produk di URL, biarkan express.static menanganinya
+        if (!id) {
+            return next();
+        }
+
+        // Cari produk berdasarkan ID di MongoDB
+        let product = null;
+        try {
+            if (mongoose.Types.ObjectId.isValid(id)) {
+                product = await Product.findById(id);
+            } else {
+                product = await Product.findOne({ id: id });
+            }
+        } catch (e) {
+            console.error('Error saat mencari produk untuk SSR Meta Tags:', e.message);
+        }
+
+        // Jika produk tidak ditemukan, lanjut ke statik file (index.html biasa)
+        if (!product) {
+            return next();
+        }
+
+        // Baca file index.html dari folder public
+        const indexPath = path.join(__dirname, 'public', 'index.html');
+        let htmlContent = fs.readFileSync(indexPath, 'utf-8');
+
+        // Dapatkan gambar produk utama
+        let imageUrl = 'https://transgadget.co.id/images/logo.png';
+        if (product.images && product.images.length > 0) {
+            imageUrl = product.images[0];
+        } else if (product.image) {
+            imageUrl = product.image;
+        }
+
+        // Tangani jika imageUrl ternyata sebuah object (misal response cloudinary mentah)
+        if (typeof imageUrl === 'object' && imageUrl.secure_url) {
+            imageUrl = imageUrl.secure_url;
+        } else if (typeof imageUrl === 'string' && imageUrl.includes('cloudinary.com') && !imageUrl.startsWith('http')) {
+             imageUrl = 'https://' + imageUrl;
+        }
+
+        const title = `${product.name} - TransGadget`;
+        const description = product.description ? product.description.substring(0, 150) + '...' : 'Selling Transformers Toys & Action Figures.';
+
+        // Ganti meta tag default dengan meta tag produk
+        htmlContent = htmlContent.replace(
+            /<meta property="og:title" content="[^"]*">/i,
+            `<meta property="og:title" content="${title}">`
+        );
+        htmlContent = htmlContent.replace(
+            /<meta property="og:description" content="[^"]*">/i,
+            `<meta property="og:description" content="${description}">`
+        );
+        htmlContent = htmlContent.replace(
+            /<meta property="og:image" content="[^"]*">/i,
+            `<meta property="og:image" content="${imageUrl}">`
+        );
+        htmlContent = htmlContent.replace(
+            /<meta property="og:image:secure_url" content="[^"]*">/i,
+            `<meta property="og:image:secure_url" content="${imageUrl}">`
+        );
+        htmlContent = htmlContent.replace(
+            /<title>.*<\/title>/i,
+            `<title>${title}</title>`
+        );
+
+        // Kirim HTML yang sudah dimodifikasi ke browser / WhatsApp crawler
+        res.send(htmlContent);
+    } catch (error) {
+        console.error('Error in SSR Meta Tags handler:', error);
+        next();
+    }
 });
+
+
+// Menyediakan akses folder publik agar file statis lain tetap bisa diakses dari browser
+app.use(express.static('public'));
+
+// Untuk sitemap.xml
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // -------------------------------------------------------------
 // FITUR MANAJEMEN AKUN & PASSWORD ADMIN API (MONGODB STORAGE)
