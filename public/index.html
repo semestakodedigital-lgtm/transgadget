@@ -6,6 +6,13 @@
     <title>TransGadget Indonesia - Official Website Store</title>
     <meta name="description" content="Selling Transformers Toys & Action Figures.">
     
+    <!-- Open Graph Tags (Diperbarui secara dinamis oleh JavaScript saat produk dibuka) -->
+    <meta property="og:title" content="TransGadget Indonesia - Official Website Store">
+    <meta property="og:description" content="Selling Transformers Toys & Action Figures.">
+    <meta property="og:image" content="https://transgadget.co.id/images/logo.png">
+    <meta property="og:image:secure_url" content="https://transgadget.co.id/images/logo.png">
+    <meta property="og:type" content="website">
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,11 +28,6 @@
 
     <!-- Logo Web (Favicon) -->
     <link rel="icon" type="image/png" href="/images/logo.png">
-
-    <!-- Open Graph Image -->
-    <meta property="og:image" content="https://transgadget.co.id/images/logo.png">
-    <meta property="og:image:secure_url" content="https://transgadget.co.id/images/logo.png">
-    <meta property="og:image:type" content="image/png">
     
     <!-- Schema Markup untuk Google Site Name -->
     <script type="application/ld+json">
@@ -520,7 +522,7 @@
         </div>
     </div>
 
-    <!-- MODAL RESI / PEMBAYARAN BERHASIL (BARU DITAMBAHKAN) -->
+    <!-- MODAL RESI / PEMBAYARAN BERHASIL -->
     <div id="success-receipt-modal" class="fixed inset-0 z-[60] overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-4 py-8">
             <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity" onclick="closeReceiptModal()"></div>
@@ -622,7 +624,6 @@
         // ==========================================
         let guestId = localStorage.getItem('guest_id');
         if (!guestId) {
-            // Membuat ID tamu unik jika belum ada di browser pelanggan
             guestId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
             localStorage.setItem('guest_id', guestId);
         }
@@ -775,10 +776,37 @@
         function handleChatKeyPress(event) { if (event.key === 'Enter') sendChatMessage(); }
 
         // ==========================================
-        // SISTEM ULASAN & PESANAN (TERHUBUNG KE DATABASE MONGODB)
+        // SISTEM ULASAN & PESANAN
         // ==========================================
         let customerOrders = [];
-        let globalReviews = []; // Variabel untuk menyimpan ulasan asli dari database
+        let globalReviews = []; 
+        let globalSoldCountMap = {}; // Variabel baru untuk perhitungan 'Terjual' secara Global
+
+        // Mengambil pesanan secara global untuk memastikan akumulasi counter Terjual akurat
+        async function fetchGlobalSoldCount() {
+            try {
+                const response = await fetch('/api/orders');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    result.data.forEach(ord => {
+                        // Pastikan hanya pesanan sah yang dihitung
+                        const validStatuses = ['Menunggu Pembayaran', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
+                        if (validStatuses.includes(ord.status || 'Belum Diproses')) {
+                            if (ord.items && Array.isArray(ord.items)) {
+                                ord.items.forEach(it => {
+                                    const pId = String(it.productId || it._id || it.id || '');
+                                    if (pId) {
+                                        globalSoldCountMap[pId] = (globalSoldCountMap[pId] || 0) + (Number(it.quantity) || 1);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn('Gagal memuat data penjualan global (kembali menggunakan fallback):', error);
+            }
+        }
 
         async function fetchCustomerOrders() {
             try {
@@ -839,20 +867,30 @@
             }
         }
 
+        // FUNGSI INI TELAH DIPERBAIKI UNTUK MENGAKOMODASI PENJUALAN GLOBAL
         function getProductSoldCount(product) {
             let totalSold = Number(product.sold) || 0;
             const productId = String(product._id || product.id || '');
             
-            customerOrders.forEach(ord => {
-                if (ord.items && Array.isArray(ord.items)) {
-                    ord.items.forEach(it => {
-                        const itProdId = String(it.productId || it._id || it.id || '');
-                        if (itProdId === productId || it.name === product.name) {
-                            totalSold += (Number(it.quantity) || 1);
+            // Prioritaskan penggunaan total data penjualan global dari server
+            if (Object.keys(globalSoldCountMap).length > 0) {
+                totalSold += (globalSoldCountMap[productId] || 0);
+            } else {
+                // Fallback (cadangan) menggunakan history order spesifik pelanggan saja
+                customerOrders.forEach(ord => {
+                    const validStatuses = ['Menunggu Pembayaran', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
+                    if (validStatuses.includes(ord.status || 'Belum Diproses')) {
+                        if (ord.items && Array.isArray(ord.items)) {
+                            ord.items.forEach(it => {
+                                const itProdId = String(it.productId || it._id || it.id || '');
+                                if (itProdId === productId || it.name === product.name) {
+                                    totalSold += (Number(it.quantity) || 1);
+                                }
+                            });
                         }
-                    });
-                }
-            });
+                    }
+                });
+            }
             return totalSold;
         }
 
@@ -926,7 +964,6 @@
             });
         }
 
-        // FUNGSI API BARU UNTUK KIRIM ULASAN LANGSUNG KE MONGODB
         async function submitCompletedProductReview() {
             const productId = document.getElementById('review-target-product-id').value;
             const orderKey = document.getElementById('review-target-order-id').value.split('-');
@@ -956,7 +993,6 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    // Update status pesanan (reviewed = true) di UI
                     if (orderKey.length === 2) {
                         const ordIdx = parseInt(orderKey[0]);
                         const itemIdx = parseInt(orderKey[1]);
@@ -972,11 +1008,8 @@
 
                     toggleWriteReviewModal(false);
                     renderMyOrdersList();
-                    
-                    // Segarkan list produk dan reviews
                     await fetchCustomerProducts();
                     
-                    // Jika modal detail terbuka, segarkan
                     if (!document.getElementById('detail-modal').classList.contains('hidden') && activeProduct) {
                         renderProductReviewsForModal();
                     }
@@ -991,7 +1024,6 @@
             }
         }
 
-        // FUNGSI API BARU UNTUK AMBIL ULASAN DARI MONGODB
         async function renderProductReviewsForModal() {
             const container = document.getElementById('product-reviews-container');
             if (!container || !activeProduct) return;
@@ -1074,8 +1106,12 @@
         let isBannerPaused = false;
 
         async function initStore() {
+            await fetchGlobalSoldCount(); // DIPERBAIKAN: Harus tarik data global lebih dulu
             await fetchCustomerProducts();
-            await fetchCustomerOrders();
+            await fetchCustomerOrders(); 
+            
+            applyFilters(); // DIPERBAIKAN: Menjalankan ulang render produk pasca data histori ditarik sehingga Terjual tidak 0.
+
             await loadBannersFromServer();
 
             const shippingType = document.getElementById('shipping-type-selector');
@@ -1279,7 +1315,6 @@
                 const result = await response.json();
                 allProducts = result.data || [];
                 
-                // Ambil daftar ulasan juga secara global untuk kalkulasi rating di Home
                 try {
                     const revRes = await fetch('/api/reviews');
                     const revResult = await revRes.json();
@@ -1289,7 +1324,6 @@
                 applyFilters();
                 updateCartUI();
 
-                // Cek apakah ada query ID pada link yang dibagikan untuk otomatis membuka Modal Produk
                 const urlParams = new URLSearchParams(window.location.search);
                 const autoOpenId = urlParams.get('id');
                 if (autoOpenId) {
@@ -1303,7 +1337,6 @@
             }
         }
 
-        // Fungsi baru untuk render satu produk (membantu pemisahan produk ready dan habis)
         function createProductCard(product, isAvailable) {
             const mediaList = (product.images && product.images.length > 0) ? product.images : (product.image ? [product.image] : ['https://via.placeholder.com/300?text=No+Image']);
             const mainMedia = mediaList[0];
@@ -1346,7 +1379,6 @@
             `;
         }
 
-        // Modifikasi fungsi render list produk untuk dipisahkan Ready vs Habis
         function displayProducts(products) {
             const readyGrid = document.getElementById('product-grid-ready');
             const emptyGrid = document.getElementById('product-grid-empty');
@@ -1401,7 +1433,6 @@
                 return matchesKeyword && matchesCategory;
             });
 
-            // Urutkan berdasarkan produk terbaru (createdAt)
             filtered.sort((a, b) => {
                 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -1419,6 +1450,14 @@
             activeSlideIndex = 0;
             selectedQuantity = 1;
             
+            // --- UPDATE META TAGS DINAMIS ---
+            const mainImg = activeImages[0] || 'https://transgadget.co.id/images/logo.png';
+            document.querySelector('meta[property="og:image"]').setAttribute("content", mainImg);
+            document.querySelector('meta[property="og:image:secure_url"]').setAttribute("content", mainImg);
+            document.querySelector('meta[property="og:title"]').setAttribute("content", activeProduct.name);
+            document.title = activeProduct.name + " - TransGadget";
+            // ---------------------------------
+
             document.getElementById('modal-quantity').innerText = selectedQuantity;
             document.getElementById('modal-product-name').innerText = activeProduct.name;
             document.getElementById('modal-product-price').innerText = `Rp ${Number(activeProduct.price).toLocaleString('id-ID')}`;
@@ -1445,7 +1484,6 @@
             toggleDetailModal(true);
         }
         
-        // FUNGSI UNTUK BERBAGI PRODUK
         function shareActiveProduct() {
             if (!activeProduct) return;
             const productId = String(activeProduct._id || activeProduct.id);
@@ -1518,7 +1556,13 @@
                 document.getElementById('detail-slider-video').pause();
                 modal.classList.add('hidden');
                 
-                // Menghilangkan ?id= dari URL setelah modal ditutup agar refresh tidak memunculkan modal lagi
+                // --- RESET META TAGS KETIKA KELUAR ---
+                document.querySelector('meta[property="og:image"]').setAttribute("content", "https://transgadget.co.id/images/logo.png");
+                document.querySelector('meta[property="og:image:secure_url"]').setAttribute("content", "https://transgadget.co.id/images/logo.png");
+                document.querySelector('meta[property="og:title"]').setAttribute("content", "TransGadget Indonesia - Official Website Store");
+                document.title = "TransGadget Indonesia - Official Website Store";
+                // -------------------------------------
+                
                 const baseUrl = window.location.href.split('?')[0];
                 window.history.replaceState({}, document.title, baseUrl);
             }
@@ -1868,7 +1912,6 @@
             const orderId = Math.floor(100000 + Math.random() * 900000).toString();
             const totalAmount = Number(subtotalAmount) + Number(selectedOngkirCost);
             
-            // Format alamat lengkap untuk JNE
             const fullAddressText = `${address}${district ? ', Kec. ' + district : ''}${cityName ? ', ' + cityName : ''}${province ? ', Prov. ' + province : ''} ${postal ? '- ' + postal : ''} (${country})`;
             const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
@@ -1977,9 +2020,6 @@
             }
         }
 
-        // ==========================================
-        // FITUR CEK STATUS PEMBAYARAN & POPUP RESI (BARU)
-        // ==========================================
         function checkPaymentStatus() {
             const urlParams = new URLSearchParams(window.location.search);
             const status = urlParams.get('status');
@@ -1989,7 +2029,6 @@
                 document.getElementById('receipt-order-id').innerText = '#' + orderId;
                 document.getElementById('success-receipt-modal').classList.remove('hidden');
                 
-                // Bersihkan URL dari parameter agar pop-up tidak muncul lagi saat halaman di-refresh
                 const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({path: newUrl}, '', newUrl);
             }
@@ -2000,7 +2039,7 @@
         }
 
         initStore();
-        checkPaymentStatus(); // Panggil pengecekan saat halaman dimuat
+        checkPaymentStatus();
     </script>   
 </body>
 </html>
