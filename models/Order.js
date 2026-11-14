@@ -26,7 +26,8 @@ const OrderSchema = new mongoose.Schema({
             productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
             name: String,
             price: Number,
-            quantity: Number
+            quantity: Number,
+            weight: { type: Number, default: 500 }
         }
     ],
     subtotal: { type: Number },
@@ -39,16 +40,21 @@ const OrderSchema = new mongoose.Schema({
     courierCompany: { type: String },
     courierType: { type: String },
 
+    // Field untuk menyimpan ID Order, Resi, dan Link Tracking dari Biteship API
+    biteship_order_id: { type: String, default: null },
+    resi_biteship: { type: String, default: null },
+    biteship_tracking_url: { type: String, default: null },
+
     // DITAMBAHKAN: Field untuk menyimpan resi AWB JNE API
     resi_jne: { type: String, default: null },
 
     status: { 
         type: String, 
-        // DITAMBAHKAN: 'Diproses / Dikirim' untuk sinkronisasi pengiriman JNE
+        // DITAMBAHKAN: 'Diproses / Dikirim' untuk sinkronisasi pengiriman JNE & Biteship
         enum: ['Menunggu Pembayaran', 'Lunas', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai', 'Batal'], 
         default: 'Menunggu Pembayaran' 
     },
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Order', OrderSchema);
+module.exports = mongoose.models.Order || mongoose.model('Order', OrderSchema);

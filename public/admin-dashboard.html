@@ -205,10 +205,16 @@
 
         <!-- SECTION 2: MANAJEMEN PESANAN MASUK -->
         <section class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-900/5">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pb-4 border-b border-slate-100 gap-4">
                 <div>
-                    <h2 class="text-base sm:text-xl font-extrabold text-slate-900">Pesanan Masuk</h2>
-                    <p class="text-xs text-slate-500 mt-1">Daftar transaksi dan pesanan dari pelanggan yang tersimpan di database.</p>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base sm:text-xl font-extrabold text-slate-900">Pesanan Masuk</h2>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            Auto-Sync Aktif
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Pemantauan otomatis pesanan yang menunggu pembayaran dan yang sudah lunas.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <span id="order-count" class="text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 px-3.5 py-2 rounded-xl">0 Pesanan</span>
@@ -217,6 +223,19 @@
                         <span>Ekspor Excel (.xlsx)</span>
                     </button>
                 </div>
+            </div>
+
+            <!-- Filter Tab Status Pembayaran Otomatis -->
+            <div class="flex flex-wrap items-center gap-2 mb-6">
+                <button id="tab-order-all" onclick="setOrderPaymentFilter('all')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white transition shadow-sm">
+                    Semua (<span id="count-order-all">0</span>)
+                </button>
+                <button id="tab-order-paid" onclick="setOrderPaymentFilter('paid')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition">
+                    ✅ Sudah Dibayar (<span id="count-order-paid">0</span>)
+                </button>
+                <button id="tab-order-pending" onclick="setOrderPaymentFilter('pending')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition">
+                    ⏳ Menunggu Pembayaran (<span id="count-order-pending">0</span>)
+                </button>
             </div>
 
             <div id="admin-orders-container" class="space-y-4">
@@ -841,10 +860,10 @@
         });
 
         // ==========================================
-        // FITUR REAL-TIME NOTIFIKASI PESANAN MASUK
+        // FITUR REAL-TIME NOTIFIKASI PESANAN MASUK & PEMBAYARAN OTOMATIS
         // ==========================================
         socket.on('new_order_notification', (savedOrder) => {
-            console.log('Pesanan baru diterima secara real-time:', savedOrder);
+            console.log('Pesanan baru / terbayar diterima secara real-time:', savedOrder);
             
             const orderAudio = document.getElementById('order-notification-sound');
             if (orderAudio) {
@@ -852,9 +871,9 @@
                 orderAudio.play().catch(e => console.log("Audio autoplay dibatasi browser:", e));
             }
 
-            alert(`🎉 Pesanan Baru Masuk! ID: #${savedOrder.orderId || '0000'} dari ${savedOrder.customer?.name || 'Pelanggan'}`);
+            alert(`🎉 Pembayaran Diterima / Pesanan Baru! ID: #${savedOrder.orderId || '0000'} dari ${savedOrder.customer?.name || 'Pelanggan'}`);
 
-            fetchAdminOrders();
+            fetchAdminOrders(true);
             fetchAdminProducts();
             fetchFinancialReport();
         });
@@ -1042,11 +1061,16 @@
                 window.location.href = '/admin-login.html';
             } else {
                 fetchAdminProducts();
-                fetchAdminOrders();
+                fetchAdminOrders(false);
                 fetchFinancialReport();
                 fetchAdminBanners();
                 fetchAdminReviews();
                 fetchAdminProfileBadge();
+
+                // Auto-sync status pesanan (Menunggu Pembayaran -> Sudah Dibayar) setiap 15 detik
+                setInterval(() => {
+                    fetchAdminOrders(true);
+                }, 15000);
             }
         });
 
@@ -1116,6 +1140,8 @@
         let globalOrders = [];
         let globalBanners = [];
         let globalTransactions = [];
+        let currentOrderFilter = 'all'; // 'all' | 'paid' | 'pending'
+        let orderStatusSnapshot = {};
 
         let activeProductMediaList = [];
         let activeBannerMediaList = [];
@@ -1715,22 +1741,72 @@
         }
 
         // ==========================================
-        // MANAJEMEN PESANAN (DIPERBARUI DENGAN FILTER & CETAK RESI)
+        // MANAJEMEN PESANAN (AUTO-SYNC PEMBAYARAN & CETAK RESI BITESHIP/JNE)
         // ==========================================
-        async function fetchAdminOrders() {
+        function isOrderPaid(status) {
+            const s = (status || '').trim();
+            return ['Lunas', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'].includes(s);
+        }
+
+        function setOrderPaymentFilter(filterType) {
+            currentOrderFilter = filterType;
+            
+            const btnAll = document.getElementById('tab-order-all');
+            const btnPaid = document.getElementById('tab-order-paid');
+            const btnPending = document.getElementById('tab-order-pending');
+
+            if (btnAll && btnPaid && btnPending) {
+                btnAll.className = filterType === 'all'
+                    ? 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white transition shadow-sm'
+                    : 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+
+                btnPaid.className = filterType === 'paid'
+                    ? 'px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white transition shadow-sm'
+                    : 'px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition';
+
+                btnPending.className = filterType === 'pending'
+                    ? 'px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 text-white transition shadow-sm'
+                    : 'px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition';
+            }
+
+            renderOrdersPage(1);
+        }
+
+        async function fetchAdminOrders(isAutoPoll = false) {
             try {
                 const response = await fetch('/api/orders');
                 const result = await response.json();
                 if (result.success) {
-                    // FILTER DIPERKETAT: Hanya ambil pesanan yang statusnya sah/sudah dibayar
-                    const validStatuses = ['Menunggu Pembayaran', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
+                    const validStatuses = ['Menunggu Pembayaran', 'Lunas', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
                     
-                    globalOrders = result.data.filter(order => {
+                    const fetchedOrders = result.data.filter(order => {
                         const currentStatus = (order.status || '').trim();
                         return validStatuses.includes(currentStatus);
                     }) || [];
-                    
-                    renderOrdersPage(1);
+
+                    // Deteksi otomatis jika ada pesanan yang berubah dari "Menunggu Pembayaran" menjadi "Sudah Dibayar"
+                    let newlyPaidCount = 0;
+                    fetchedOrders.forEach(ord => {
+                        const prevStatus = orderStatusSnapshot[ord.orderId];
+                        const nowStatus = (ord.status || '').trim();
+                        if (isAutoPoll && prevStatus === 'Menunggu Pembayaran' && isOrderPaid(nowStatus)) {
+                            newlyPaidCount++;
+                        }
+                        orderStatusSnapshot[ord.orderId] = nowStatus;
+                    });
+
+                    globalOrders = fetchedOrders;
+
+                    if (newlyPaidCount > 0) {
+                        const orderAudio = document.getElementById('order-notification-sound');
+                        if (orderAudio) {
+                            orderAudio.currentTime = 0;
+                            orderAudio.play().catch(() => {});
+                        }
+                        fetchFinancialReport();
+                    }
+
+                    renderOrdersPage(isAutoPoll ? currentPageOrders : 1);
                 }
             } catch (error) {
                 console.error('Gagal mengambil data pesanan:', error);
@@ -1740,26 +1816,48 @@
         function renderOrdersPage(page) {
             currentPageOrders = page;
             const container = document.getElementById('admin-orders-container');
-            document.getElementById('order-count').innerText = `${globalOrders.length} Pesanan Lunas`;
+
+            const paidOrdersList = globalOrders.filter(o => isOrderPaid(o.status));
+            const pendingOrdersList = globalOrders.filter(o => (o.status || '').trim() === 'Menunggu Pembayaran');
+
+            document.getElementById('order-count').innerText = `${paidOrdersList.length} Pesanan Lunas`;
+            if (document.getElementById('count-order-all')) document.getElementById('count-order-all').innerText = globalOrders.length;
+            if (document.getElementById('count-order-paid')) document.getElementById('count-order-paid').innerText = paidOrdersList.length;
+            if (document.getElementById('count-order-pending')) document.getElementById('count-order-pending').innerText = pendingOrdersList.length;
+
+            let filteredByTab = globalOrders;
+            if (currentOrderFilter === 'paid') {
+                filteredByTab = paidOrdersList;
+            } else if (currentOrderFilter === 'pending') {
+                filteredByTab = pendingOrdersList;
+            }
+
             container.innerHTML = '';
 
-            if (globalOrders.length === 0) {
+            if (filteredByTab.length === 0) {
+                const emptyTitle = currentOrderFilter === 'pending'
+                    ? 'Tidak Ada Pesanan Menunggu Pembayaran'
+                    : (currentOrderFilter === 'paid' ? 'Belum Ada Pesanan Lunas' : 'Belum Ada Pesanan Masuk');
                 container.innerHTML = `
                     <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
                         <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">📦</div>
-                        <h3 class="font-bold text-slate-800 text-sm">Belum Ada Pesanan Lunas</h3>
-                        <p class="text-xs text-slate-400">Pesanan dari pelanggan yang telah berhasil dibayar akan muncul di sini.</p>
+                        <h3 class="font-bold text-slate-800 text-sm">${emptyTitle}</h3>
+                        <p class="text-xs text-slate-400">Status pembayaran pelanggan akan diperbarui secara otomatis di sini.</p>
                     </div>
                 `;
                 document.getElementById('order-pagination').innerHTML = '';
                 return;
             }
 
-            const sortedOrders = [...globalOrders].sort((a, b) => {
+            const sortedOrders = [...filteredByTab].sort((a, b) => {
                 return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
             });
             
-            const startIdx = (page - 1) * ITEMS_PER_PAGE;
+            const totalPages = Math.max(1, Math.ceil(sortedOrders.length / ITEMS_PER_PAGE));
+            const safePage = Math.min(page, totalPages);
+            currentPageOrders = safePage;
+
+            const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
             const paginatedOrders = sortedOrders.slice(startIdx, startIdx + ITEMS_PER_PAGE);
 
             paginatedOrders.forEach((order) => {
@@ -1791,12 +1889,12 @@
                 const subtotal = Number(order.subtotal || (amount - ongkir));
 
                 let statusBtnClass = "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100";
-                let statusText = "Belum Dibayar";
-                let btnAction = `alert('Pesanan ini masih menunggu pembayaran dari pelanggan!')`;
+                let statusText = "Menunggu Pembayaran";
+                let btnAction = `alert('Pesanan ini masih menunggu pembayaran dari pelanggan! Status akan otomatis berubah setelah pembayaran selesai.')`;
                 
-                if (currentStatus === 'Belum Diproses') {
+                if (currentStatus === 'Belum Diproses' || currentStatus === 'Lunas') {
                     statusBtnClass = "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100";
-                    statusText = "Baru Dibayar";
+                    statusText = "Sudah Dibayar • Baru";
                     btnAction = `cycleOrderStatus("${order._id}", "${currentStatus}")`;
                 } else if (currentStatus === 'Diproses oleh Admin' || currentStatus === 'Diproses / Dikirim') {
                     statusBtnClass = "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100";
@@ -1819,6 +1917,17 @@
                     </a>
                 ` : '';
 
+                // Informasi Resi Biteship / JNE yang sudah tersimpan di database
+                let resiBadgeHtml = '';
+                if (order.resi_biteship) {
+                    resiBadgeHtml = `<span class="text-emerald-700 font-bold">🧾 Resi Biteship: ${order.resi_biteship}</span>`;
+                    if (order.biteship_tracking_url) {
+                        resiBadgeHtml += `<a href="${order.biteship_tracking_url}" target="_blank" class="text-indigo-600 font-bold hover:underline">🚚 Lacak Kurir Biteship →</a>`;
+                    }
+                } else if (order.resi_jne) {
+                    resiBadgeHtml = `<span class="text-emerald-700 font-bold">🧾 Resi JNE: ${order.resi_jne}</span>`;
+                }
+
                 // TOMBOL CETAK RESI JNE / BITESHIP
                 const isJNE = custCourier.toLowerCase().includes('jne');
                 const isInstant = custCourier.toLowerCase().includes('gojek') || custCourier.toLowerCase().includes('grab') || custCourier.toLowerCase().includes('instant');
@@ -1832,6 +1941,13 @@
                         🖨️ Proses & Cetak Resi (${isJNE ? 'JNE' : (isInstant ? 'Gojek/Grab' : 'Kurir')})
                     </button>
                 `;
+
+                // Tombol Hapus Pesanan khusus untuk status Menunggu Pembayaran
+                const deleteUnpaidBtnHtml = currentStatus === 'Menunggu Pembayaran' ? `
+                    <button onclick="deleteSingleOrder('${order._id || order.id}', '${String(orderId).replace(/'/g, "\\'")}')" class="w-full mt-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-2.5 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5">
+                        🗑️ Hapus Pesanan
+                    </button>
+                ` : '';
 
                 container.innerHTML += `
                     <div class="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition space-y-5">
@@ -1858,6 +1974,7 @@
                                 <div class="pt-2 border-t border-slate-200/60 flex flex-col gap-1 text-[11px]">
                                     <span class="text-slate-600">🚚 Kurir: <b class="text-slate-800">${custCourier}</b></span>
                                     <span class="text-slate-600">💳 Pembayaran: <b class="text-slate-800">${paymentMethod}</b></span>
+                                    ${resiBadgeHtml}
                                     ${mapsUrl && mapsUrl !== '-' ? `<a href="${mapsUrl}" target="_blank" class="text-indigo-600 font-bold hover:underline mt-0.5">🗺️ Buka Titik Google Maps →</a>` : ''}
                                 </div>
                             </div>
@@ -1889,6 +2006,7 @@
                                 <div>
                                     ${btnPrintHtml}
                                     ${waButtonHtml}
+                                    ${deleteUnpaidBtnHtml}
                                 </div>
                             </div>
 
@@ -1897,13 +2015,13 @@
                 `;
             });
             
-            renderPagination(sortedOrders.length, page, ITEMS_PER_PAGE, 'order-pagination', renderOrdersPage);
+            renderPagination(sortedOrders.length, safePage, ITEMS_PER_PAGE, 'order-pagination', renderOrdersPage);
         }
 
         async function cycleOrderStatus(orderMongoId, currentStatus) {
             let nextStatus = 'Diproses / Dikirim';
             
-            if (currentStatus === 'Belum Diproses') {
+            if (currentStatus === 'Belum Diproses' || currentStatus === 'Lunas') {
                 nextStatus = 'Diproses / Dikirim';
             } else if (currentStatus === 'Diproses / Dikirim' || currentStatus === 'Diproses oleh Admin') {
                 nextStatus = 'Selesai';
@@ -1916,15 +2034,28 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: nextStatus })
             });
-            fetchAdminOrders();
+            fetchAdminOrders(false);
             fetchFinancialReport();
         }
 
-        async function deleteSingleOrder(orderMongoId) {
-            if (!confirm('Hapus pesanan ini?')) return;
-            await fetch(`/api/orders/${orderMongoId}`, { method: 'DELETE' });
-            fetchAdminOrders();
-            fetchFinancialReport();
+        async function deleteSingleOrder(orderMongoId, displayOrderId = '') {
+            const label = displayOrderId ? ` #${displayOrderId}` : '';
+            if (!confirm(`Hapus pesanan${label} yang belum dibayar? Stok produk akan dikembalikan otomatis.`)) return;
+            try {
+                const response = await fetch(`/api/orders/${orderMongoId}`, { method: 'DELETE' });
+                const result = await response.json().catch(() => ({}));
+                if (response.ok && (result.success === undefined || result.success)) {
+                    alert(result.message || `Pesanan${label} berhasil dihapus.`);
+                    fetchAdminOrders(false);
+                    fetchAdminProducts();
+                    fetchFinancialReport();
+                } else {
+                    alert('Gagal menghapus pesanan: ' + (result.message || result.error || 'Terjadi kesalahan.'));
+                }
+            } catch (error) {
+                console.error('Error menghapus pesanan:', error);
+                alert('Terjadi kesalahan koneksi saat menghapus pesanan.');
+            }
         }
 
         // ==========================================
@@ -1971,7 +2102,7 @@
                         });
                         const resData = await response.json();
 
-                            if (resData.success && resData.data) {
+                        if (resData.success && resData.data) {
                             // Cek berbagai kemungkinan struktur path dari respon API JNE
                             if (resData.data.cnote_no) {
                                 nomorResiAsli = resData.data.cnote_no;
@@ -1991,25 +2122,42 @@
                     }
                 }
             } 
-            // 2. INTEGRASI BITESHIP (GOJEK/GRAB)
+            // 2. INTEGRASI BITESHIP (GOJEK/GRAB): Otomatis kirim order ke dashboard Biteship
             else if (isInstant) {
-                nomorResiAsli = "";
+                if (order.resi_biteship && order.resi_biteship.trim() !== '') {
+                    nomorResiAsli = order.resi_biteship;
+                } else {
+                    try {
+                        const response = await fetch('/api/biteship/orders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId: order.orderId })
+                        });
+                        const resData = await response.json();
+
+                        if (response.ok && resData.success && resData.data) {
+                            nomorResiAsli = resData.data.waybill_id || resData.data.biteship_order_id || 'DIPROSES BITESHIP';
+                            await fetchAdminOrders(false);
+                        } else {
+                            alert('Gagal mengirim pesanan ke Biteship: ' + (resData.message || resData.error || 'Periksa log server atau saldo wallet Biteship Anda.'));
+                            return;
+                        }
+                    } catch (err) {
+                        console.error("Gagal mengirim pesanan ke API Biteship:", err);
+                        alert('Terjadi kesalahan koneksi saat menghubungi server Biteship.');
+                        return;
+                    }
+                }
             }
 
             // 3. UBAH STATUS OTOMATIS KE "Diproses" JIKA MASIH BARU
-            if (order.status === 'Belum Diproses') {
-                 cycleOrderStatus(order._id || order.id, order.status);
+            if (order.status === 'Belum Diproses' || order.status === 'Lunas') {
+                await cycleOrderStatus(order._id || order.id, order.status);
             }
 
             // 4. TAMPILKAN JENDELA CETAK
             const printWindow = window.open('', '_blank', 'width=800,height=900');
             
-            const itemsListHtml = (order.items || []).map(item => `
-                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 5px;">
-                    <span><strong>${item.quantity}x</strong> ${item.name}</span>
-                </div>
-            `).join('');
-
             const htmlContent = `
             <!DOCTYPE html>
             <html>
@@ -2042,7 +2190,7 @@
                     </div>
 
                     <div class="resi-box">
-                        ${isJNE ? 'RESI JNE: <br>' : ''} ${nomorResiAsli}
+                        ${isJNE ? 'RESI JNE: <br>' : (isInstant ? 'RESI BITESHIP: <br>' : '')} ${nomorResiAsli}
                     </div>
 
                     <div class="address-box">
@@ -2146,6 +2294,7 @@
                     "Subtotal Produk (Rp)": subtotal,
                     "Ongkos Kirim (Rp)": ongkir,
                     "Total Belanja (Rp)": amount,
+                    "Nomor Resi": o.resi_biteship || o.resi_jne || '-',
                     "Status Pesanan": o.status
                 };
             });

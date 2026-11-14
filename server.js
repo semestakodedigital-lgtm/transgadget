@@ -12,10 +12,32 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary'); // Modul Sto
 const bcrypt = require('bcrypt'); // Modul enkripsi password admin
 const mongoose = require('mongoose'); // Modul Mongoose (Dipindahkan ke atas agar siap digunakan seluruh model)
 const XLSX = require('xlsx'); // Modul untuk membaca file Excel JNE (list_dest.xlsx, dll)
+const midtransClient = require('midtrans-client'); // Modul resmi Midtrans
 const connectDB = require('./config/db'); // Modul koneksi MongoDB dari folder config
 
-// Import Konfigurasi Midtrans dari folder config/midtrans.js
-const { snap, coreApi } = require('./config/midtrans');
+// Import Konfigurasi Midtrans dari folder config/midtrans.js sebagai cadangan
+const midtransConfig = require('./config/midtrans');
+
+// Pastikan environment Midtrans (Production vs Sandbox) otomatis mengikuti Server Key
+const midtransServerKey = process.env.MIDTRANS_SERVER_KEY || midtransConfig.snap?.apiConfig?.serverKey || '';
+const midtransClientKey = process.env.MIDTRANS_CLIENT_KEY || midtransConfig.snap?.apiConfig?.clientKey || '';
+const isMidtransProduction = midtransServerKey ? !midtransServerKey.startsWith('SB-') : true;
+
+const snap = midtransServerKey
+    ? new midtransClient.Snap({
+        isProduction: isMidtransProduction,
+        serverKey: midtransServerKey,
+        clientKey: midtransClientKey
+    })
+    : midtransConfig.snap;
+
+const coreApi = midtransServerKey
+    ? new midtransClient.CoreApi({
+        isProduction: isMidtransProduction,
+        serverKey: midtransServerKey,
+        clientKey: midtransClientKey
+    })
+    : midtransConfig.coreApi;
 
 const Product = require('./models/Product');
 const Order = require('./models/Order'); // Model MongoDB untuk Pesanan
@@ -34,35 +56,67 @@ async function createBiteshipOrder(orderData, orderIdRef) {
             return null;
         }
 
+        const refId = String(orderIdRef || orderData.orderId || '');
+
+        // Cegah duplikasi jika pesanan ini sudah pernah dibuatkan order Biteship
+        if (refId) {
+            const existingOrder = await Order.findOne({ orderId: refId }).lean();
+            if (existingOrder && existingOrder.biteship_order_id) {
+                console.log(`Order Biteship untuk Order ID ${refId} sudah ada (${existingOrder.biteship_order_id}), melewati pembuatan ulang.`);
+                return {
+                    success: true,
+                    id: existingOrder.biteship_order_id,
+                    waybill_id: existingOrder.resi_biteship || existingOrder.biteship_order_id
+                };
+            }
+        }
+
         const originLat = Number(process.env.ORIGIN_LATITUDE) || -6.1158;
         const originLng = Number(process.env.ORIGIN_LONGITUDE) || 106.7431;
+        const destLat = Number(orderData.destinationLatitude) || -6.2000;
+        const destLng = Number(orderData.destinationLongitude) || 106.8160;
 
-        const response = await axios.post('https://api.biteship.com/v1/orders', {
+        // Deteksi perusahaan & layanan kurir secara akurat
+        const courierText = `${orderData.courierCompany || ''} ${orderData.customer?.courier || ''}`.toLowerCase();
+        const courierCompany = courierText.includes('grab') ? 'grab' : 'gojek';
+        const courierType = (orderData.courierType === 'sameday' || courierText.includes('sameday')) ? 'sameday' : 'instant';
+
+        // Bersihkan nomor telepon tujuan agar valid sesuai format Biteship
+        const rawDestPhone = String(orderData.customer?.phone || '08123456789').replace(/[^0-9+]/g, '');
+
+        const payload = {
+            reference_id: refId,
             shipper_contact_name: "TransGadget Store",
             shipper_contact_phone: "08119238168",
+            shipper_contact_email: "transgadget.cs2@gmail.com",
+            shipper_organization: "TransGadget Indonesia",
             origin_contact_name: "Admin TransGadget",
             origin_contact_phone: "08119238168",
             origin_address: "Ruko Elang Laut Boulevard Blok C No. 42, PIK, Jakarta Utara",
-            origin_latitude: originLat,
-            origin_longitude: originLng,
-            
+            origin_coordinate: {
+                latitude: originLat,
+                longitude: originLng
+            },
             destination_contact_name: orderData.customer?.name || "Pelanggan TransGadget",
-            destination_contact_phone: orderData.customer?.phone || "08123456789",
+            destination_contact_phone: rawDestPhone || "08123456789",
             destination_address: orderData.customer?.address || "Alamat Tujuan Pelanggan",
-            destination_latitude: Number(orderData.destinationLatitude) || -6.2000,
-            destination_longitude: Number(orderData.destinationLongitude) || 106.8160,
-            
-            courier_company: orderData.courierCompany || 'gojek', // Contoh: 'gojek' atau 'grab'
-            courier_type: orderData.courierType || 'instant',      // Contoh: 'instant' atau 'sameday'
+            destination_coordinate: {
+                latitude: destLat,
+                longitude: destLng
+            },
+            courier_company: courierCompany,
+            courier_type: courierType,
             delivery_type: 'now',
-            items: (orderData.items || []).map(item => ({
-                name: item.name || 'Produk Mainan',
-                description: item.name || 'Produk Mainan',
-                value: Number(item.price) || 0,
-                quantity: Number(item.quantity) || 1,
-                weight: Number(item.weight || 500)
+            items: (orderData.items && orderData.items.length > 0 ? orderData.items : [{ name: 'Produk Mainan', price: 100000, quantity: 1, weight: 500 }]).map(item => ({
+                name: String(item.name || 'Produk Mainan').substring(0, 100),
+                description: String(item.name || 'Produk Mainan').substring(0, 100),
+                value: Math.max(1000, Number(item.price) || 10000),
+                quantity: Math.max(1, Number(item.quantity) || 1),
+                weight: Math.max(100, Number(item.weight) || 500)
             }))
-        }, {
+        };
+
+        const response = await axios.post('https://api.biteship.com/v1/orders', payload, {
             headers: {
                 'Authorization': `Bearer ${biteshipApiKey}`,
                 'Content-Type': 'application/json'
@@ -72,14 +126,34 @@ async function createBiteshipOrder(orderData, orderIdRef) {
 
         const result = response.data;
         if (result.success || result.id) {
-            console.log(`Berhasil membuat order Biteship untuk Order ID ${orderIdRef}, Resi/ID Biteship:`, result.id || result.waybill_id);
+            const biteshipId = result.id || '';
+            const waybillId = result.courier?.waybill_id || result.waybill_id || biteshipId;
+            const trackingUrl = result.courier?.link || '';
+
+            console.log(`Berhasil membuat order Biteship untuk Order ID ${refId}, ID Biteship: ${biteshipId}, Resi: ${waybillId}`);
+
+            // Simpan ID Biteship & resi ke MongoDB agar tercatat permanen
+            if (refId) {
+                await Order.updateOne(
+                    { orderId: refId },
+                    {
+                        $set: {
+                            biteship_order_id: biteshipId,
+                            resi_biteship: waybillId,
+                            biteship_tracking_url: trackingUrl
+                        }
+                    },
+                    { strict: false }
+                );
+            }
+
             return result;
         } else {
             console.error("Gagal membuat order Biteship:", result);
             return null;
         }
     } catch (err) {
-        console.error("Error API Biteship Create Order:", err.response?.data || err.message);
+        console.error("Error API Biteship Create Order:", JSON.stringify(err.response?.data || err.message));
         return null;
     }
 }
@@ -904,7 +978,78 @@ app.get('/api/biteship/areas', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// FITUR PENGIRIMAN INSTAN & JNE (BITESHIP API INTEGRATION - DENGAN SANITIZASI & FALLBACK)
+// ENDPOINT BITESHIP: BUAT PESANAN KURIR INSTAN (MANUAL/TOMBOL ADMIN)
+// -------------------------------------------------------------
+app.post(['/api/biteship/orders', '/api/shipping/biteship-order'], async (req, res) => {
+    try {
+        const { orderId, id } = req.body;
+        const lookupId = orderId || id;
+
+        if (!lookupId) {
+            return res.status(400).json({ success: false, message: 'Order ID wajib disertakan.' });
+        }
+
+        let order = null;
+        if (mongoose.Types.ObjectId.isValid(lookupId)) {
+            order = await Order.findById(lookupId);
+        }
+        if (!order) {
+            order = await Order.findOne({ orderId: String(lookupId) });
+        }
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan di database.' });
+        }
+
+        const courierLower = `${order.courierCompany || ''} ${order.customer?.courier || ''}`.toLowerCase();
+        const company = courierLower.includes('grab') ? 'grab' : 'gojek';
+        const type = (order.courierType === 'sameday' || courierLower.includes('sameday')) ? 'sameday' : 'instant';
+
+        const biteshipResult = await createBiteshipOrder({
+            customer: {
+                name: order.customer?.name,
+                phone: order.customer?.phone,
+                address: order.customer?.address
+            },
+            destinationLatitude: order.destinationLatitude || -6.2000,
+            destinationLongitude: order.destinationLongitude || 106.8160,
+            courierCompany: company,
+            courierType: type,
+            items: order.items
+        }, order.orderId);
+
+        if (!biteshipResult) {
+            return res.status(500).json({
+                success: false,
+                message: 'Gagal mengirim pesanan ke API Biteship. Periksa log server atau saldo/API Key Biteship.'
+            });
+        }
+
+        const waybillId = biteshipResult.courier?.waybill_id || biteshipResult.waybill_id || biteshipResult.id;
+
+        if (order.status === 'Belum Diproses' || order.status === 'Diproses oleh Admin') {
+            order.status = 'Diproses / Dikirim';
+            await order.save();
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Pesanan berhasil dikirim ke Biteship',
+            data: {
+                biteship_order_id: biteshipResult.id,
+                waybill_id: waybillId,
+                tracking_url: biteshipResult.courier?.link || '',
+                raw: biteshipResult
+            }
+        });
+    } catch (error) {
+        console.error('Error endpoint create Biteship order:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// -------------------------------------------------------------
+// FITUR PENGIRIMAN INSTAN & JNE (BITESHIP API INTEGRATION)
 // -------------------------------------------------------------
 const ratesCache = {}; // Penyimpanan cache sementara untuk menghemat kuota API Biteship
 
@@ -960,12 +1105,9 @@ app.post('/api/check-ongkir', async (req, res) => {
         }
 
         return res.status(200).json({
-            success: true,
-            pricing: [
-                { courier_name: 'Gojek', courier_service_name: 'Instant', price: 15000, duration: '1-3 jam' },
-                { courier_name: 'Grab', courier_service_name: 'Instant', price: 17000, duration: '1-3 jam' }
-            ],
-            source: 'fallback_instant'
+            success: false,
+            pricing: [],
+            message: 'Kurir instan tidak tersedia untuk lokasi tujuan ini'
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -1229,6 +1371,29 @@ app.put('/api/orders/:id/status', async (req, res) => {
             { returnDocument: 'after' }
         );
 
+        // Jika status pesanan berubah menjadi Diproses oleh Admin / Diproses / Dikirim dan kurirnya Gojek/Grab,
+        // pastikan pesanan otomatis terdaftar ke dashboard Biteship (jika belum dibuat sebelumnya).
+        if (status === 'Diproses oleh Admin' || status === 'Diproses / Dikirim') {
+            const courierCheck = `${updatedOrder.courierCompany || ''} ${updatedOrder.customer?.courier || ''}`.toLowerCase();
+            if (courierCheck.includes('gojek') || courierCheck.includes('grab')) {
+                const company = courierCheck.includes('grab') ? 'grab' : 'gojek';
+                const type = (updatedOrder.courierType === 'sameday' || courierCheck.includes('sameday')) ? 'sameday' : 'instant';
+
+                await createBiteshipOrder({
+                    customer: {
+                        name: updatedOrder.customer?.name,
+                        phone: updatedOrder.customer?.phone,
+                        address: updatedOrder.customer?.address
+                    },
+                    destinationLatitude: updatedOrder.destinationLatitude || -6.2000,
+                    destinationLongitude: updatedOrder.destinationLongitude || 106.8160,
+                    courierCompany: company,
+                    courierType: type,
+                    items: updatedOrder.items
+                }, updatedOrder.orderId);
+            }
+        }
+
         if (status === 'Selesai') {
             const existingTx = await Transaction.findOne({ orderId: updatedOrder.orderId });
             if (!existingTx) {
@@ -1241,7 +1406,8 @@ app.put('/api/orders/:id/status', async (req, res) => {
             }
         }
 
-        res.status(200).json({ success: true, data: updatedOrder });
+        const latestOrder = await Order.findById(req.params.id);
+        res.status(200).json({ success: true, data: latestOrder || updatedOrder });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -1249,9 +1415,41 @@ app.put('/api/orders/:id/status', async (req, res) => {
 
 app.delete('/api/orders/:id', async (req, res) => {
     try {
-        await Order.findByIdAndDelete(req.params.id);
-        res.status(200).json({ success: true, message: 'Pesanan dihapus' });
+        const { id } = req.params;
+        let order = null;
+
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            order = await Order.findById(id);
+        }
+        if (!order) {
+            order = await Order.findOne({ orderId: id });
+        }
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan' });
+        }
+
+        // Kembalikan stok produk otomatis jika pesanan dihapus (dan belum berstatus Batal)
+        if (order.items && order.items.length > 0 && order.status !== 'Batal') {
+            for (const item of order.items) {
+                const prodId = item.productId || item._id;
+                if (prodId && mongoose.Types.ObjectId.isValid(prodId)) {
+                    const product = await Product.findById(prodId);
+                    if (product) {
+                        product.stock = (Number(product.stock) || 0) + (Number(item.quantity) || 1);
+                        await product.save();
+                    }
+                }
+            }
+        }
+
+        await Order.findByIdAndDelete(order._id);
+        res.status(200).json({
+            success: true,
+            message: 'Pesanan berhasil dihapus dan stok produk telah dikembalikan'
+        });
     } catch (error) {
+        console.error('Error menghapus pesanan:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -1294,7 +1492,7 @@ try {
         console.warn("[JNE] File list_dest.xlsx tidak ditemukan di direktori utama.");
     }
 } catch (e) {
-        console.warn("[JNE] Gagal membaca file list_dest.xlsx:", e.message);
+    console.warn("[JNE] Gagal membaca file list_dest.xlsx:", e.message);
 }
 
 // ENDPOINT JNE: CEK RESI (API TRACE TRACKING)

@@ -351,7 +351,7 @@
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Metode Pengiriman</label>
                             <select id="shipping-type-selector" onchange="switchShippingType()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 font-bold">
-                                <option value="jne">JNE</option>
+                                <option value="jne">JNE (Ekspedisi Reguler)</option>
                                 <option value="instant" selected>Gojek / Grab Instan</option>
                             </select>
                             <p id="shipping-type-help" class="mt-1 text-[9px] sm:text-[10px] text-slate-500">
@@ -397,13 +397,13 @@
 
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Kota</label>
-                            <input type="text" id="cust-city" value="" required placeholder="Ketik nama kota..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                            <input type="text" id="cust-city" onchange="autoSyncAddressToMap()" value="" required placeholder="Ketik nama kota..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block font-bold text-slate-700 mb-1">Provinsi</label>
-                                <select id="cust-province" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+                                <select id="cust-province" onchange="autoSyncAddressToMap()" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
                                     <option value="">-- Pilih Provinsi --</option>
                                     <option value="Aceh">Aceh</option>
                                     <option value="Bali">Bali</option>
@@ -780,16 +780,14 @@
         // ==========================================
         let customerOrders = [];
         let globalReviews = []; 
-        let globalSoldCountMap = {}; // Variabel baru untuk perhitungan 'Terjual' secara Global
+        let globalSoldCountMap = {};
 
-        // Mengambil pesanan secara global untuk memastikan akumulasi counter Terjual akurat
         async function fetchGlobalSoldCount() {
             try {
                 const response = await fetch('/api/orders');
                 const result = await response.json();
                 if (result.success && result.data) {
                     result.data.forEach(ord => {
-                        // Pastikan hanya pesanan sah yang dihitung
                         const validStatuses = ['Menunggu Pembayaran', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
                         if (validStatuses.includes(ord.status || 'Belum Diproses')) {
                             if (ord.items && Array.isArray(ord.items)) {
@@ -867,16 +865,13 @@
             }
         }
 
-        // FUNGSI INI TELAH DIPERBAIKI UNTUK MENGAKOMODASI PENJUALAN GLOBAL
         function getProductSoldCount(product) {
             let totalSold = Number(product.sold) || 0;
             const productId = String(product._id || product.id || '');
             
-            // Prioritaskan penggunaan total data penjualan global dari server
             if (Object.keys(globalSoldCountMap).length > 0) {
                 totalSold += (globalSoldCountMap[productId] || 0);
             } else {
-                // Fallback (cadangan) menggunakan history order spesifik pelanggan saja
                 customerOrders.forEach(ord => {
                     const validStatuses = ['Menunggu Pembayaran', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
                     if (validStatuses.includes(ord.status || 'Belum Diproses')) {
@@ -1097,6 +1092,11 @@
         let selectedOngkirCost = 0;
         let selectedServiceDescription = '';
 
+        // Koordinat Origin Toko: Ruko Elang Laut Boulevard Blok C No. 42, PIK, Jakarta Utara
+        const STORE_ORIGIN_LAT = -6.115500;
+        const STORE_ORIGIN_LNG = 106.744100;
+        const MAX_INSTANT_DISTANCE_KM = 40; // Batas jangkauan maksimal Gojek / Grab Instan
+
         let leafletMap = null;
         let leafletMarker = null;
 
@@ -1106,11 +1106,11 @@
         let isBannerPaused = false;
 
         async function initStore() {
-            await fetchGlobalSoldCount(); // DIPERBAIKAN: Harus tarik data global lebih dulu
+            await fetchGlobalSoldCount();
             await fetchCustomerProducts();
             await fetchCustomerOrders(); 
             
-            applyFilters(); // DIPERBAIKAN: Menjalankan ulang render produk pasca data histori ditarik sehingga Terjual tidak 0.
+            applyFilters();
 
             await loadBannersFromServer();
 
@@ -1208,6 +1208,59 @@
             }
         }
 
+        // Hitung jarak garis lurus (Haversine) dalam Kilometer
+        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // Nonaktifkan opsi Gojek/Grab secara otomatis jika berada di luar jangkauan
+        function enforceCourierAvailabilityByLocation(distanceKm, customReason) {
+            const selector = document.getElementById('shipping-type-selector');
+            if (!selector) return false;
+
+            const instantOption = selector.querySelector('option[value="instant"]');
+            const helpText = document.getElementById('shipping-type-help');
+            const isOutOfRange = distanceKm > MAX_INSTANT_DISTANCE_KM || Boolean(customReason);
+
+            if (isOutOfRange) {
+                if (instantOption) {
+                    instantOption.disabled = true;
+                    instantOption.textContent = 'Gojek / Grab Instan (Di Luar Jangkauan)';
+                }
+
+                const reasonMsg = customReason || `Alamat tujuan berjarak ±${Math.round(distanceKm)} km dari toko (di luar jangkauan Gojek/Grab maks. ${MAX_INSTANT_DISTANCE_KM} km).`;
+
+                if (selector.value === 'instant') {
+                    selector.value = 'jne';
+                    switchShippingType();
+                }
+
+                if (helpText) {
+                    helpText.innerHTML = `<span class="text-amber-700 font-bold">⚠️ ${reasonMsg} Pengiriman otomatis dialihkan ke ekspedisi reguler (JNE).</span>`;
+                }
+
+                const city = document.getElementById('cust-city').value.trim();
+                const district = document.getElementById('cust-district').value.trim();
+                if ((city || district) && cart.length > 0) {
+                    calculateJneRates();
+                }
+                return false;
+            } else {
+                if (instantOption) {
+                    instantOption.disabled = false;
+                    instantOption.textContent = 'Gojek / Grab Instan';
+                }
+                return true;
+            }
+        }
+
         async function autoSyncAddressToMap() {
             const address = document.getElementById('cust-address').value.trim();
             const district = document.getElementById('cust-district').value.trim();
@@ -1215,25 +1268,32 @@
             const provinceSelect = document.getElementById('cust-province');
             const province = provinceSelect ? provinceSelect.value : '';
 
-            const queryParts = [address, district, city, province].filter(Boolean);
-            if (queryParts.length === 0) return;
+            // Pencarian bertingkat: jika alamat jalan spesifik tidak ditemukan, otomatis cari berdasarkan Kecamatan/Kota/Provinsi
+            const candidateQueries = [
+                [address, district, city, province].filter(Boolean).join(', '),
+                [district, city, province].filter(Boolean).join(', '),
+                [city, province].filter(Boolean).join(', ')
+            ].filter((q, idx, arr) => q && arr.indexOf(q) === idx);
 
-            const searchQuery = queryParts.join(', ');
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=id&limit=1`);
-                const results = await res.json();
-                if (results && results.length > 0) {
-                    const lat = parseFloat(results[0].lat);
-                    const lon = parseFloat(results[0].lon);
-                    if (leafletMap && leafletMarker) {
-                        leafletMap.setView([lat, lon], 16);
-                        leafletMarker.setLatLng([lat, lon]);
-                        document.getElementById('cust-lat').value = lat.toFixed(6);
-                        document.getElementById('cust-lng').value = lon.toFixed(6);
+            if (candidateQueries.length === 0) return;
+
+            for (const searchQuery of candidateQueries) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=id&limit=1`);
+                    const results = await res.json();
+                    if (results && results.length > 0) {
+                        const lat = parseFloat(results[0].lat);
+                        const lon = parseFloat(results[0].lon);
+                        if (leafletMap && leafletMarker) {
+                            leafletMap.setView([lat, lon], 16);
+                            leafletMarker.setLatLng([lat, lon]);
+                        }
+                        updateCoords(lat, lon);
+                        return;
                     }
+                } catch (err) {
+                    console.warn('Gagal geocoding otomatis:', err);
                 }
-            } catch (err) {
-                console.warn('Gagal geocoding otomatis:', err);
             }
         }
 
@@ -1279,7 +1339,7 @@
             }, 400);
         }
 
-        function selectBiteshipArea(areaId, areaName, postalCode, cityName, provinceName) {
+        async function selectBiteshipArea(areaId, areaName, postalCode, cityName, provinceName) {
             const cleanDistrict = areaName.split(',')[0].trim();
 
             document.getElementById('biteship-area-input').value = cleanDistrict;
@@ -1306,7 +1366,7 @@
             }
             
             document.getElementById('biteship-area-dropdown').classList.add('hidden');
-            autoSyncAddressToMap();
+            await autoSyncAddressToMap();
         }
 
         async function fetchCustomerProducts() {
@@ -1569,13 +1629,13 @@
         }
 
         function initMap() {
-            const defaultLat = -6.115500;
-            const defaultLng = 106.744100;
+            const currentLat = parseFloat(document.getElementById('cust-lat').value) || STORE_ORIGIN_LAT;
+            const currentLng = parseFloat(document.getElementById('cust-lng').value) || STORE_ORIGIN_LNG;
             if (!leafletMap) {
-                leafletMap = L.map('map').setView([defaultLat, defaultLng], 15);
+                leafletMap = L.map('map').setView([currentLat, currentLng], 15);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(leafletMap);
-                leafletMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(leafletMap);
-                updateCoords(defaultLat, defaultLng);
+                leafletMarker = L.marker([currentLat, currentLng], { draggable: true }).addTo(leafletMap);
+                updateCoords(currentLat, currentLng);
                 leafletMarker.on('dragend', () => { const p = leafletMarker.getLatLng(); updateCoords(p.lat, p.lng); });
                 leafletMap.on('click', (e) => { leafletMarker.setLatLng(e.latlng); updateCoords(e.latlng.lat, e.latlng.lng); });
             } else {
@@ -1586,7 +1646,9 @@
         function updateCoords(lat, lng) {
             document.getElementById('cust-lat').value = lat.toFixed(6);
             document.getElementById('cust-lng').value = lng.toFixed(6);
-            document.getElementById('map-status').innerText = `Titik terpilih: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            const distanceKm = calculateDistanceKm(STORE_ORIGIN_LAT, STORE_ORIGIN_LNG, lat, lng);
+            document.getElementById('map-status').innerText = `Titik terpilih: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${distanceKm.toFixed(1)} km dari toko)`;
+            enforceCourierAvailabilityByLocation(distanceKm);
         }
 
         async function searchLocationOnMap() {
@@ -1679,6 +1741,10 @@
 
         function switchShippingType() {
             const selector = document.getElementById('shipping-type-selector');
+            const instantOption = selector ? selector.querySelector('option[value="instant"]') : null;
+            if (selector && selector.value === 'instant' && instantOption && instantOption.disabled) {
+                selector.value = 'jne';
+            }
             const type = selector ? selector.value : 'instant';
 
             const mapSection = document.getElementById('instant-map-section');
@@ -1689,7 +1755,9 @@
             if (type === 'jne') {
                 if (mapSection) mapSection.classList.add('hidden');
                 if (serviceLabel) serviceLabel.innerText = 'Pilih Layanan JNE';
-                if (helpText) helpText.innerText = 'Pengiriman Reguler menggunakan API JNE.';
+                if (helpText && !(instantOption && instantOption.disabled)) {
+                    helpText.innerText = 'Pengiriman Reguler menggunakan ekspedisi JNE.';
+                }
             } else {
                 if (mapSection) mapSection.classList.remove('hidden');
                 if (serviceLabel) serviceLabel.innerText = 'Pilih Layanan Kurir Instan';
@@ -1817,9 +1885,17 @@
         }
         
         async function calculateBiteshipRates() {
-            const lat = document.getElementById('cust-lat').value;
-            const lng = document.getElementById('cust-lng').value;
+            const lat = parseFloat(document.getElementById('cust-lat').value);
+            const lng = parseFloat(document.getElementById('cust-lng').value);
             const serviceSelect = document.getElementById('cust-service');
+
+            // Validasi jarak sebelum menembak API Biteship
+            const distanceKm = calculateDistanceKm(STORE_ORIGIN_LAT, STORE_ORIGIN_LNG, lat, lng);
+            if (distanceKm > MAX_INSTANT_DISTANCE_KM) {
+                enforceCourierAvailabilityByLocation(distanceKm);
+                alert(`Alamat tujuan berada di luar jangkauan Gojek/Grab Instan (±${Math.round(distanceKm)} km). Metode pengiriman otomatis dialihkan ke JNE.`);
+                return;
+            }
 
             serviceSelect.innerHTML = '<option value="">Menghitung tarif kurir instan via Biteship...</option>';
 
@@ -1828,8 +1904,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        destinationLatitude: parseFloat(lat),
-                        destinationLongitude: parseFloat(lng),
+                        destinationLatitude: lat,
+                        destinationLongitude: lng,
                         couriers: 'gojek,grab',
                         items: cart.map(i => ({ 
                             name: i.name || 'Produk Mainan', 
@@ -1841,23 +1917,28 @@
                 });
                 const result = await response.json();
 
-                if (result.success && result.pricing && result.pricing.length > 0) {
+                const validPricing = (result.success && Array.isArray(result.pricing))
+                    ? result.pricing.filter(rate => Number(rate.price) > 0)
+                    : [];
+
+                if (validPricing.length > 0) {
                     serviceSelect.innerHTML = '';
-                    result.pricing.forEach(rate => {
+                    validPricing.forEach(rate => {
                         const courierName = (rate.courier_name || rate.company || '').toUpperCase();
                         const serviceName = rate.courier_service_name || rate.type || 'Instant';
-                        const price = rate.price || 0;
-                        serviceSelect.innerHTML += `<option value="${price}" data-desc="${courierName} - ${serviceName}">${courierName} (${serviceName}) - Rp ${Number(price).toLocaleString('id-ID')}</option>`;
+                        const price = Number(rate.price);
+                        serviceSelect.innerHTML += `<option value="${price}" data-desc="${courierName} - ${serviceName}">${courierName} (${serviceName}) - Rp ${price.toLocaleString('id-ID')}</option>`;
                     });
                     updateGrandTotal();
                 } else {
-                    serviceSelect.innerHTML = '<option value="20000" data-desc="Gojek Instant">Gojek Instant - Rp 20.000 (Fallback)</option><option value="22000" data-desc="Grab Instant">Grab Instant - Rp 22.000 (Fallback)</option>';
-                    updateGrandTotal();
+                    // Tidak ada tarif dummy/fallback: nonaktifkan kurir instan dan alihkan ke JNE
+                    enforceCourierAvailabilityByLocation(distanceKm, 'Layanan Gojek / Grab tidak tersedia untuk lokasi tujuan ini.');
+                    alert('Layanan Gojek / Grab tidak menjangkau alamat tujuan Anda. Metode pengiriman otomatis dialihkan ke ekspedisi reguler (JNE).');
                 }
             } catch (err) {
                 console.error('Error fetching Biteship rates:', err);
-                serviceSelect.innerHTML = '<option value="20000" data-desc="Gojek Instant">Gojek Instant - Rp 20.000 (Fallback)</option><option value="22000" data-desc="Grab Instant">Grab Instant - Rp 22.000 (Fallback)</option>';
-                updateGrandTotal();
+                enforceCourierAvailabilityByLocation(distanceKm, 'Layanan Gojek / Grab tidak tersedia saat ini.');
+                alert('Layanan Gojek / Grab tidak tersedia untuk lokasi tujuan Anda. Silakan gunakan ekspedisi reguler (JNE).');
             }
         }
 
@@ -1901,6 +1982,17 @@
                 return alert('Mohon lengkapi Nama depan, Telepon, serta Alamat secara lengkap!');
             }
 
+            const selector = document.getElementById('shipping-type-selector');
+            const shippingType = selector ? selector.value : 'instant';
+
+            if (shippingType === 'instant') {
+                const distanceKm = calculateDistanceKm(STORE_ORIGIN_LAT, STORE_ORIGIN_LNG, parseFloat(lat), parseFloat(lng));
+                if (distanceKm > MAX_INSTANT_DISTANCE_KM) {
+                    enforceCourierAvailabilityByLocation(distanceKm);
+                    return alert('Alamat tujuan berada di luar jangkauan Gojek/Grab Instan. Silakan pilih layanan ekspedisi reguler (JNE).');
+                }
+            }
+
             if (!selectedOngkirCost || selectedOngkirCost <= 0) {
                 return alert('Mohon klik tombol "Cek Tarif" dan pilih layanan kurir sebelum checkout!');
             }
@@ -1914,9 +2006,6 @@
             
             const fullAddressText = `${address}${district ? ', Kec. ' + district : ''}${cityName ? ', ' + cityName : ''}${province ? ', Prov. ' + province : ''} ${postal ? '- ' + postal : ''} (${country})`;
             const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
-
-            const selector = document.getElementById('shipping-type-selector');
-            const shippingType = selector ? selector.value : 'instant';
 
             const newOrder = {
                 orderId: orderId,
