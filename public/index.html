@@ -20,8 +20,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Socket.IO Client Library -->
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- Socket.IO Client Library (dengan fallback CDN jika dibuka dari hosting statis) -->
+    <script src="/socket.io/socket.io.js" onerror="this.onerror=null;this.src='https://cdn.socket.io/4.7.5/socket.io.min.js';"></script>
 
     <!-- Midtrans Snap Script -->
     <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-plHMPSzRFTRI7Ucr"></script>
@@ -94,7 +94,7 @@
             <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
                 <a href="https://wa.me/628119238168?text=Halo%20Admin%20TransGadget,%20saya%20ingin%20bertanya%20mengenai%20produk%20mainan." target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 flex items-center justify-center shadow-md shadow-emerald-600/10" title="Hubungi WhatsApp Admin">
                     <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-1.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                     </svg>
                     <span class="hidden sm:inline sm:ml-2">WhatsApp</span>
                 </a>
@@ -620,6 +620,26 @@
     <!-- Script JavaScript -->
     <script>
         // ==========================================
+        // KONFIGURASI KONEKTIVITAS BACKEND 24 JAM (HOSTINGER - TANPA RAILWAY)
+        // ==========================================
+        // Jika server.js berjalan langsung di domain Hostinger transgadget.co.id, biarkan kosong ('')
+        // agar otomatis memakai relative path pada domain aktif.
+        // Jika backend Node.js Anda ditaruh di subdomain/VPS Hostinger terpisah (misal: 'https://api.transgadget.co.id'),
+        // isi URL lengkap backend tersebut pada konstanta HOSTINGER_BACKEND_URL di bawah ini:
+        const HOSTINGER_BACKEND_URL = '';
+
+        const isLocalEnv = ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.protocol === 'file:';
+        const API_BASE_URL = isLocalEnv
+            ? (window.location.protocol === 'file:' ? 'https://transgadget.co.id' : '')
+            : (HOSTINGER_BACKEND_URL ? HOSTINGER_BACKEND_URL.replace(/\/+$/, '') : '');
+
+        function apiFetch(endpoint, options = {}) {
+            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+            const targetUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${cleanEndpoint}`;
+            return fetch(targetUrl, options);
+        }
+
+        // ==========================================
         // FITUR GUEST ID GENERATOR
         // ==========================================
         let guestId = localStorage.getItem('guest_id');
@@ -631,7 +651,9 @@
         // ==========================================
         // KONFIGURASI LIVE CHAT SOCKET.IO & MONGODB
         // ==========================================
-        const socket = io();
+        const socket = typeof io !== 'undefined'
+            ? (API_BASE_URL ? io(API_BASE_URL, { transports: ['websocket', 'polling'] }) : io())
+            : { emit: () => {}, on: () => {} };
         const chatWindow = document.getElementById('chat-window');
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
@@ -649,7 +671,7 @@
 
         async function fetchChatHistory() {
             try {
-                const response = await fetch(`/api/chats?room=${encodeURIComponent(mySenderId)}`);
+                const response = await apiFetch(`/api/chats?room=${encodeURIComponent(mySenderId)}`);
                 const result = await response.json();
                 if (result.success) {
                     chatMessages.innerHTML = '';
@@ -784,7 +806,7 @@
 
         async function fetchGlobalSoldCount() {
             try {
-                const response = await fetch('/api/orders');
+                const response = await apiFetch('/api/orders');
                 const result = await response.json();
                 if (result.success && result.data) {
                     result.data.forEach(ord => {
@@ -809,12 +831,12 @@
         async function fetchCustomerOrders() {
             try {
                 if (!allProducts || allProducts.length === 0) {
-                    const prodRes = await fetch(API_URL);
+                    const prodRes = await apiFetch(API_URL);
                     const prodResult = await prodRes.json();
                     allProducts = prodResult.data || [];
                 }
 
-                const response = await fetch(`/api/orders?guest_id=${guestId}`);
+                const response = await apiFetch(`/api/orders?guest_id=${guestId}`);
                 const result = await response.json();
                 if (result.success && result.data) {
                     const reviewedStorage = JSON.parse(localStorage.getItem('tg_reviewed_items') || '{}');
@@ -973,7 +995,7 @@
             const item = order.items[parseInt(orderKey[1])];
 
             try {
-                const response = await fetch('/api/reviews', {
+                const response = await apiFetch('/api/reviews', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1028,7 +1050,7 @@
             container.innerHTML = `<p class="text-slate-400 text-xs text-center py-6">Memuat ulasan dari server...</p>`;
             
             try {
-                const res = await fetch(`/api/reviews`);
+                const res = await apiFetch('/api/reviews');
                 const result = await res.json();
                 if (result.success && result.data) {
                     reviews = result.data.filter(r => {
@@ -1122,7 +1144,7 @@
 
         async function loadBannersFromServer() {
             try {
-                const res = await fetch('/api/banners');
+                const res = await apiFetch('/api/banners');
                 const result = await res.json();
                 if (result.success && result.data && result.data.length > 0) {
                     dynamicBanners = result.data;
@@ -1311,7 +1333,7 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`/api/biteship/areas?input=${encodeURIComponent(keyword)}`);
+                    const response = await apiFetch(`/api/biteship/areas?input=${encodeURIComponent(keyword)}`);
                     const result = await response.json();
 
                     if (result && result.areas && result.areas.length > 0) {
@@ -1371,12 +1393,12 @@
 
         async function fetchCustomerProducts() {
             try {
-                const response = await fetch(API_URL);
+                const response = await apiFetch(API_URL);
                 const result = await response.json();
                 allProducts = result.data || [];
                 
                 try {
-                    const revRes = await fetch('/api/reviews');
+                    const revRes = await apiFetch('/api/reviews');
                     const revResult = await revRes.json();
                     if(revResult.success) globalReviews = revResult.data || [];
                 } catch(e) {}
@@ -1818,7 +1840,7 @@
                 jneParams.append('city', city);
                 jneParams.append('weight', weightKg.toString());
 
-                const response = await fetch('/api/shipping/jne-cost', {
+                const response = await apiFetch('/api/shipping/jne-cost', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: jneParams.toString()
@@ -1900,7 +1922,7 @@
             serviceSelect.innerHTML = '<option value="">Menghitung tarif kurir instan via Biteship...</option>';
 
             try {
-                const response = await fetch('/api/check-ongkir', {
+                const response = await apiFetch('/api/check-ongkir', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2007,6 +2029,9 @@
             const fullAddressText = `${address}${district ? ', Kec. ' + district : ''}${cityName ? ', ' + cityName : ''}${province ? ', Prov. ' + province : ''} ${postal ? '- ' + postal : ''} (${country})`;
             const googleMapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
+            const descLower = selectedServiceDescription.toLowerCase();
+            const isSameDay = descLower.includes('same day') || descLower.includes('sameday') || descLower.includes('same_day');
+
             const newOrder = {
                 orderId: orderId,
                 guest_id: guestId,
@@ -2025,12 +2050,12 @@
                 status: 'Menunggu Pembayaran',
                 destinationLatitude: lat,
                 destinationLongitude: lng,
-                courierCompany: shippingType === 'jne' ? 'jne' : (selectedServiceDescription.toLowerCase().includes('grab') ? 'grab' : 'gojek'),
-                courierType: shippingType === 'jne' ? 'reg' : (selectedServiceDescription.toLowerCase().includes('sameday') ? 'sameday' : 'instant')
+                courierCompany: shippingType === 'jne' ? 'jne' : (descLower.includes('grab') ? 'grab' : 'gojek'),
+                courierType: shippingType === 'jne' ? 'reg' : (isSameDay ? 'same_day' : 'instant')
             };
 
             try {
-                await fetch('/api/orders', {
+                await apiFetch('/api/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newOrder)
@@ -2049,7 +2074,7 @@
                         awbParams.append('receiver_phone', phone);
                         awbParams.append('receiver_address', fullAddressText);
 
-                        await fetch('/api/shipping/jne-generate-awb', {
+                        await apiFetch('/api/shipping/jne-generate-awb', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                             body: awbParams.toString()
@@ -2059,7 +2084,7 @@
                     }
                 }
 
-                const res = await fetch('/api/create-midtrans-transaction', {
+                const res = await apiFetch('/api/create-midtrans-transaction', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 

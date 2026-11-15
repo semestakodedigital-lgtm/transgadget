@@ -546,6 +546,13 @@
     <!-- Script JavaScript Admin -->
     <script>
         // ==========================================
+        // KONFIGURASI BASE URL API (PRODUCTION / RELATIVE)
+        // ==========================================
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? ''
+            : '';
+
+        // ==========================================
         // KONFIGURASI PAGING
         // ==========================================
         const ITEMS_PER_PAGE = 5;
@@ -636,7 +643,7 @@
         // Ambil riwayat chat langsung dari MongoDB saat halaman dimuat
         async function fetchChatHistory() {
             try {
-                const response = await fetch('/api/chats');
+                const response = await fetch(`${API_BASE_URL}/api/chats`);
                 const result = await response.json();
                 if (result.success) {
                     allChatMessages = result.data || [];
@@ -887,7 +894,7 @@
             const tbody = document.getElementById('admin-reviews-table');
             const countBadge = document.getElementById('review-count-badge');
             try {
-                const response = await fetch('/api/reviews');
+                const response = await fetch(`${API_BASE_URL}/api/reviews`);
                 if (!response.ok) {
                     countBadge.innerText = `0 Ulasan`;
                     tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada ulasan atau endpoint API /api/reviews belum diaktifkan di server backend.</td></tr>`;
@@ -975,7 +982,7 @@
 
         async function submitAdminReviewReply(reviewId, replyText) {
             try {
-                const response = await fetch(`/api/reviews/${reviewId}/reply`, {
+                const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}/reply`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ adminReply: replyText })
@@ -996,7 +1003,7 @@
         async function deleteReview(reviewId) {
             if (!confirm('Apakah Anda yakin ingin menghapus ulasan pelanggan ini?')) return;
             try {
-                const response = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
+                const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}`, { method: 'DELETE' });
                 if (response.ok) {
                     alert('Ulasan berhasil dihapus.');
                     fetchAdminReviews();
@@ -1076,7 +1083,7 @@
 
         async function fetchAdminProfileBadge() {
             try {
-                const response = await fetch('/api/admin/profile');
+                const response = await fetch(`${API_BASE_URL}/api/admin/profile`);
                 const result = await response.json();
                 if (result.success && result.data && result.data.length > 0) {
                     const currentAdmin = result.data[0];
@@ -1102,7 +1109,7 @@
             const newPassword = document.getElementById('admin-new-password').value;
 
             try {
-                const response = await fetch('/api/admin/update-credentials', {
+                const response = await fetch(`${API_BASE_URL}/api/admin/update-credentials`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1134,8 +1141,8 @@
             window.location.href = '/admin-login.html';
         }
 
-        const API_URL = '/api/products';
-        const BANNER_API_URL = '/api/banners';
+        const API_URL = `${API_BASE_URL}/api/products`;
+        const BANNER_API_URL = `${API_BASE_URL}/api/banners`;
         let globalProducts = [];
         let globalOrders = [];
         let globalBanners = [];
@@ -1774,7 +1781,7 @@
 
         async function fetchAdminOrders(isAutoPoll = false) {
             try {
-                const response = await fetch('/api/orders');
+                const response = await fetch(`${API_BASE_URL}/api/orders`);
                 const result = await response.json();
                 if (result.success) {
                     const validStatuses = ['Menunggu Pembayaran', 'Lunas', 'Belum Diproses', 'Diproses oleh Admin', 'Diproses / Dikirim', 'Selesai'];
@@ -1811,6 +1818,22 @@
             } catch (error) {
                 console.error('Gagal mengambil data pesanan:', error);
             }
+        }
+
+        // Helper pemetaan layanan Biteship agar Same Day & Instant tidak tertukar
+        function parseBiteshipService(courierText) {
+            const lower = (courierText || '').toLowerCase();
+            const isGrab = lower.includes('grab');
+            const isGojek = lower.includes('gojek') || lower.includes('gosend');
+            const isSameDay = lower.includes('same day') || lower.includes('sameday') || lower.includes('same_day');
+            const isInstant = lower.includes('instant');
+            const isBiteship = isGrab || isGojek || isSameDay || isInstant;
+
+            return {
+                isBiteship,
+                courier_company: isGrab ? 'grab' : (isGojek ? 'gojek' : ''),
+                courier_type: isSameDay ? 'same_day' : 'instant'
+            };
         }
         
         function renderOrdersPage(page) {
@@ -1930,7 +1953,8 @@
 
                 // TOMBOL CETAK RESI JNE / BITESHIP
                 const isJNE = custCourier.toLowerCase().includes('jne');
-                const isInstant = custCourier.toLowerCase().includes('gojek') || custCourier.toLowerCase().includes('grab') || custCourier.toLowerCase().includes('instant');
+                const biteshipInfo = parseBiteshipService(custCourier);
+                const isBiteshipCourier = biteshipInfo.isBiteship;
                 
                 const btnPrintHtml = currentStatus === 'Menunggu Pembayaran' ? `
                     <button onclick="alert('Pesanan belum dibayar. Tidak dapat mencetak resi.')" class="w-full mt-2 bg-slate-400 text-white font-bold py-2.5 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 cursor-not-allowed">
@@ -1938,7 +1962,7 @@
                     </button>
                 ` : `
                     <button onclick='prosesDanCetakResiAsli(${JSON.stringify(order).replace(/'/g, "&#39;")})' class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5">
-                        🖨️ Proses & Cetak Resi (${isJNE ? 'JNE' : (isInstant ? 'Gojek/Grab' : 'Kurir')})
+                        🖨️ Proses & Cetak Resi (${isJNE ? 'JNE' : (isBiteshipCourier ? 'Gojek/Grab' : 'Kurir')})
                     </button>
                 `;
 
@@ -2029,7 +2053,7 @@
                 nextStatus = 'Selesai';
             }
 
-            await fetch(`/api/orders/${orderMongoId}/status`, {
+            await fetch(`${API_BASE_URL}/api/orders/${orderMongoId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: nextStatus })
@@ -2042,7 +2066,7 @@
             const label = displayOrderId ? ` #${displayOrderId}` : '';
             if (!confirm(`Hapus pesanan${label} yang belum dibayar? Stok produk akan dikembalikan otomatis.`)) return;
             try {
-                const response = await fetch(`/api/orders/${orderMongoId}`, { method: 'DELETE' });
+                const response = await fetch(`${API_BASE_URL}/api/orders/${orderMongoId}`, { method: 'DELETE' });
                 const result = await response.json().catch(() => ({}));
                 if (response.ok && (result.success === undefined || result.success)) {
                     alert(result.message || `Pesanan${label} berhasil dihapus.`);
@@ -2062,15 +2086,15 @@
         // FUNGSI PROSES & CETAK RESI (JNE / BITESHIP)
         // ==========================================
         async function prosesDanCetakResiAsli(order) {
-            const courierName = (order.customer?.courier || '').toLowerCase();
+            const courierName = (order.customer?.courier || order.courier || '').toLowerCase();
             const isJNE = courierName.includes('jne');
-            const isInstant = courierName.includes('gojek') || courierName.includes('grab') || courierName.includes('instant');
+            const biteshipInfo = parseBiteshipService(courierName);
+            const isBiteshipCourier = biteshipInfo.isBiteship;
 
             let nomorResiAsli = "MENUNGGU PICKUP";
 
             // 1. INTEGRASI JNE: Generate Resi (AWB) saat tombol cetak diklik
             if (isJNE) {
-                // DIPERBARUI: Cek apakah resi JNE sudah ada di database (hasil dari Order.js yang baru)
                 if (order.resi_jne && order.resi_jne.trim() !== '') {
                     nomorResiAsli = order.resi_jne;
                 } else {
@@ -2078,7 +2102,6 @@
                         const totalBerat = order.items.reduce((acc, i) => acc + ((i.weight || 500) * i.quantity), 0);
                         const totalBarang = order.items.reduce((acc, i) => acc + i.quantity, 0);
                         
-                        // Ekstrak nama kota dari alamat untuk JNE Destination Code
                         const addressString = (order.customer?.address || '').toUpperCase();
                         let jneDestCode = 'JAKARTA'; 
                         if(addressString.includes('BANDUNG')) jneDestCode = 'BANDUNG';
@@ -2094,8 +2117,7 @@
                         awbParams.append('receiver_phone', order.customer?.phone || '-');
                         awbParams.append('receiver_address', order.customer?.address || '-');
 
-                        // Tembak API JNE (melalui server backend)
-                        const response = await fetch('/api/shipping/jne-generate-awb', {
+                        const response = await fetch(`${API_BASE_URL}/api/shipping/jne-generate-awb`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                             body: awbParams.toString()
@@ -2103,7 +2125,6 @@
                         const resData = await response.json();
 
                         if (resData.success && resData.data) {
-                            // Cek berbagai kemungkinan struktur path dari respon API JNE
                             if (resData.data.cnote_no) {
                                 nomorResiAsli = resData.data.cnote_no;
                             } else if (resData.data.detail && resData.data.detail.length > 0) {
@@ -2114,7 +2135,7 @@
                                 nomorResiAsli = "JNE-" + order.orderId;
                             }
                         } else {
-                            nomorResiAsli = "JNE-" + order.orderId; // Fallback resi jika API kosong/gagal
+                            nomorResiAsli = "JNE-" + order.orderId;
                         }
                     } catch (err) {
                         console.error("Gagal cetak JNE", err);
@@ -2122,16 +2143,21 @@
                     }
                 }
             } 
-            // 2. INTEGRASI BITESHIP (GOJEK/GRAB): Otomatis kirim order ke dashboard Biteship
-            else if (isInstant) {
+            // 2. INTEGRASI BITESHIP (GOJEK/GRAB SAME DAY & INSTANT): Otomatis kirim order sesuai layanan dipilih
+            else if (isBiteshipCourier) {
                 if (order.resi_biteship && order.resi_biteship.trim() !== '') {
                     nomorResiAsli = order.resi_biteship;
                 } else {
                     try {
-                        const response = await fetch('/api/biteship/orders', {
+                        const response = await fetch(`${API_BASE_URL}/api/biteship/orders`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ orderId: order.orderId })
+                            body: JSON.stringify({
+                                orderId: order.orderId,
+                                courier_company: biteshipInfo.courier_company,
+                                courier_type: biteshipInfo.courier_type,
+                                ongkir: Number(order.ongkir || 0)
+                            })
                         });
                         const resData = await response.json();
 
@@ -2190,7 +2216,7 @@
                     </div>
 
                     <div class="resi-box">
-                        ${isJNE ? 'RESI JNE: <br>' : (isInstant ? 'RESI BITESHIP: <br>' : '')} ${nomorResiAsli}
+                        ${isJNE ? 'RESI JNE: <br>' : (isBiteshipCourier ? 'RESI BITESHIP: <br>' : '')} ${nomorResiAsli}
                     </div>
 
                     <div class="address-box">
@@ -2228,7 +2254,7 @@
 
         async function fetchFinancialReport() {
             try {
-                const response = await fetch('/api/financial-report');
+                const response = await fetch(`${API_BASE_URL}/api/financial-report`);
                 const result = await response.json();
                 if (result.success) {
                     globalTransactions = result.data || [];

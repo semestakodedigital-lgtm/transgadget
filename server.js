@@ -46,6 +46,29 @@ const Transaction = require('./models/Transaction'); // MODEL: Untuk Laporan Keu
 const Chat = require('./models/Chat'); // MODEL: Untuk Live Chat
 
 // -------------------------------------------------------------
+// HELPER: NORMALISASI LAYANAN & PERUSAHAAN KURIR BITESHIP
+// -------------------------------------------------------------
+function normalizeBiteshipCourier(courierCompanyInput, courierTypeInput, rawCourierLabel) {
+    const combinedText = `${courierCompanyInput || ''} ${courierTypeInput || ''} ${rawCourierLabel || ''}`.toLowerCase();
+
+    let company = 'gojek';
+    if (combinedText.includes('grab')) {
+        company = 'grab';
+    } else if (combinedText.includes('gojek') || combinedText.includes('gosend')) {
+        company = 'gojek';
+    }
+
+    const isSameDay =
+        combinedText.includes('same day') ||
+        combinedText.includes('sameday') ||
+        combinedText.includes('same_day');
+
+    const type = isSameDay ? 'same_day' : 'instant';
+
+    return { courierCompany: company, courierType: type };
+}
+
+// -------------------------------------------------------------
 // FUNGSI HELPER: OTOMATIS BUAT PESANAN KURIR KE BITESHIP
 // -------------------------------------------------------------
 async function createBiteshipOrder(orderData, orderIdRef) {
@@ -76,13 +99,20 @@ async function createBiteshipOrder(orderData, orderIdRef) {
         const destLat = Number(orderData.destinationLatitude) || -6.2000;
         const destLng = Number(orderData.destinationLongitude) || 106.8160;
 
-        // Deteksi perusahaan & layanan kurir secara akurat
-        const courierText = `${orderData.courierCompany || ''} ${orderData.customer?.courier || ''}`.toLowerCase();
-        const courierCompany = courierText.includes('grab') ? 'grab' : 'gojek';
-        const courierType = (orderData.courierType === 'sameday' || courierText.includes('sameday')) ? 'sameday' : 'instant';
+        // Deteksi perusahaan & layanan kurir secara akurat (support 'same day', 'sameday', 'same_day', 'instant')
+        const { courierCompany, courierType } = normalizeBiteshipCourier(
+            orderData.courierCompany,
+            orderData.courierType,
+            orderData.customer?.courier
+        );
 
         // Bersihkan nomor telepon tujuan agar valid sesuai format Biteship
         const rawDestPhone = String(orderData.customer?.phone || '08123456789').replace(/[^0-9+]/g, '');
+
+        // Ekstrak kode pos 5 digit dari alamat tujuan jika tersedia
+        const addressText = String(orderData.customer?.address || 'Alamat Tujuan Pelanggan');
+        const postalMatch = addressText.match(/\b\d{5}\b/);
+        const destPostalCode = orderData.destinationPostalCode || (postalMatch ? Number(postalMatch[0]) : undefined);
 
         const payload = {
             reference_id: refId,
@@ -93,13 +123,15 @@ async function createBiteshipOrder(orderData, orderIdRef) {
             origin_contact_name: "Admin TransGadget",
             origin_contact_phone: "08119238168",
             origin_address: "Ruko Elang Laut Boulevard Blok C No. 42, PIK, Jakarta Utara",
+            origin_postal_code: 14470,
             origin_coordinate: {
                 latitude: originLat,
                 longitude: originLng
             },
             destination_contact_name: orderData.customer?.name || "Pelanggan TransGadget",
             destination_contact_phone: rawDestPhone || "08123456789",
-            destination_address: orderData.customer?.address || "Alamat Tujuan Pelanggan",
+            destination_address: addressText,
+            ...(destPostalCode ? { destination_postal_code: Number(destPostalCode) } : {}),
             destination_coordinate: {
                 latitude: destLat,
                 longitude: destLng
@@ -130,7 +162,7 @@ async function createBiteshipOrder(orderData, orderIdRef) {
             const waybillId = result.courier?.waybill_id || result.waybill_id || biteshipId;
             const trackingUrl = result.courier?.link || '';
 
-            console.log(`Berhasil membuat order Biteship untuk Order ID ${refId}, ID Biteship: ${biteshipId}, Resi: ${waybillId}`);
+            console.log(`Berhasil membuat order Biteship (${courierCompany} - ${courierType}) untuk Order ID ${refId}, ID Biteship: ${biteshipId}, Resi: ${waybillId}`);
 
             // Simpan ID Biteship & resi ke MongoDB agar tercatat permanen
             if (refId) {
@@ -140,7 +172,9 @@ async function createBiteshipOrder(orderData, orderIdRef) {
                         $set: {
                             biteship_order_id: biteshipId,
                             resi_biteship: waybillId,
-                            biteship_tracking_url: trackingUrl
+                            biteship_tracking_url: trackingUrl,
+                            courierCompany: courierCompany,
+                            courierType: courierType
                         }
                     },
                     { strict: false }
@@ -185,10 +219,42 @@ const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema);
 
 const app = express();
 const server = http.createServer(app); // Menggabungkan Express dengan HTTP Server
-const io = new Server(server); // Inisialisasi Socket.io di dalam server
+
+// Izinkan CORS agar frontend di transgadget.co.id / Hostinger / Railway dapat mengakses backend 24 jam tanpa laptop
+const allowedOrigins = [
+    'https://transgadget.co.id',
+    'https://www.transgadget.co.id',
+    'http://transgadget.co.id',
+    'http://www.transgadget.co.id',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+];
+
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.railway.app')) {
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE']
+    }
+}); // Inisialisasi Socket.io di dalam server
 
 const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const BASE_URL = process.env.BASE_URL || `https://transgadget.co.id`;
 
 // Middleware untuk membaca JSON dan URL-encoded data dari body request
 app.use(express.json());
@@ -756,11 +822,14 @@ app.post('/api/midtrans/notification', async (req, res) => {
                     });
                 }
 
-                // Trigger otomatis buat pesanan ke Biteship jika menggunakan kurir instant/goshop
-                if (order.customer?.courier && (order.customer.courier.toLowerCase().includes('gojek') || order.customer.courier.toLowerCase().includes('grab'))) {
-                    const courierLower = order.customer.courier.toLowerCase();
-                    const company = courierLower.includes('grab') ? 'grab' : 'gojek';
-                    const type = courierLower.includes('sameday') ? 'sameday' : 'instant';
+                // Trigger otomatis buat pesanan ke Biteship jika menggunakan kurir instant/same_day (Gojek/Grab)
+                const courierLower = `${order.courierCompany || ''} ${order.courierType || ''} ${order.customer?.courier || ''}`.toLowerCase();
+                if (courierLower.includes('gojek') || courierLower.includes('grab') || courierLower.includes('same day') || courierLower.includes('sameday') || courierLower.includes('instant')) {
+                    const { courierCompany, courierType } = normalizeBiteshipCourier(
+                        order.courierCompany,
+                        order.courierType,
+                        order.customer?.courier
+                    );
 
                     await createBiteshipOrder({
                         customer: {
@@ -770,8 +839,8 @@ app.post('/api/midtrans/notification', async (req, res) => {
                         },
                         destinationLatitude: order.destinationLatitude || -6.2000,
                         destinationLongitude: order.destinationLongitude || 106.8160,
-                        courierCompany: company,
-                        courierType: type,
+                        courierCompany: courierCompany,
+                        courierType: courierType,
                         items: order.items
                     }, orderId);
                 }
@@ -978,11 +1047,11 @@ app.get('/api/biteship/areas', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// ENDPOINT BITESHIP: BUAT PESANAN KURIR INSTAN (MANUAL/TOMBOL ADMIN)
+// ENDPOINT BITESHIP: BUAT PESANAN KURIR INSTAN / SAME DAY (MANUAL/TOMBOL ADMIN)
 // -------------------------------------------------------------
 app.post(['/api/biteship/orders', '/api/shipping/biteship-order'], async (req, res) => {
     try {
-        const { orderId, id } = req.body;
+        const { orderId, id, courier_company, courier_type } = req.body;
         const lookupId = orderId || id;
 
         if (!lookupId) {
@@ -1001,9 +1070,11 @@ app.post(['/api/biteship/orders', '/api/shipping/biteship-order'], async (req, r
             return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan di database.' });
         }
 
-        const courierLower = `${order.courierCompany || ''} ${order.customer?.courier || ''}`.toLowerCase();
-        const company = courierLower.includes('grab') ? 'grab' : 'gojek';
-        const type = (order.courierType === 'sameday' || courierLower.includes('sameday')) ? 'sameday' : 'instant';
+        const { courierCompany, courierType } = normalizeBiteshipCourier(
+            courier_company || order.courierCompany,
+            courier_type || order.courierType,
+            order.customer?.courier
+        );
 
         const biteshipResult = await createBiteshipOrder({
             customer: {
@@ -1013,8 +1084,8 @@ app.post(['/api/biteship/orders', '/api/shipping/biteship-order'], async (req, r
             },
             destinationLatitude: order.destinationLatitude || -6.2000,
             destinationLongitude: order.destinationLongitude || 106.8160,
-            courierCompany: company,
-            courierType: type,
+            courierCompany: courierCompany,
+            courierType: courierType,
             items: order.items
         }, order.orderId);
 
@@ -1307,6 +1378,9 @@ app.post('/api/orders', async (req, res) => {
             }
         }
 
+        // Normalisasi informasi kurir instan / same day sejak order dibuat
+        const normalizedCourier = normalizeBiteshipCourier(courierCompany, courierType, customer?.courier);
+
         // PENTING: Set status awal menjadi 'Menunggu Pembayaran' jika status tidak diberikan
         const initialStatus = status || 'Menunggu Pembayaran';
 
@@ -1321,8 +1395,8 @@ app.post('/api/orders', async (req, res) => {
             status: 'Menunggu Pembayaran',
             destinationLatitude,
             destinationLongitude,
-            courierCompany,
-            courierType
+            courierCompany: courierCompany || normalizedCourier.courierCompany,
+            courierType: courierType || normalizedCourier.courierType
         });
         const savedOrder = await newOrder.save();
         
@@ -1371,13 +1445,16 @@ app.put('/api/orders/:id/status', async (req, res) => {
             { returnDocument: 'after' }
         );
 
-        // Jika status pesanan berubah menjadi Diproses oleh Admin / Diproses / Dikirim dan kurirnya Gojek/Grab,
+        // Jika status pesanan berubah menjadi Diproses oleh Admin / Diproses / Dikirim dan kurirnya Gojek/Grab (Instant/Same Day),
         // pastikan pesanan otomatis terdaftar ke dashboard Biteship (jika belum dibuat sebelumnya).
         if (status === 'Diproses oleh Admin' || status === 'Diproses / Dikirim') {
-            const courierCheck = `${updatedOrder.courierCompany || ''} ${updatedOrder.customer?.courier || ''}`.toLowerCase();
-            if (courierCheck.includes('gojek') || courierCheck.includes('grab')) {
-                const company = courierCheck.includes('grab') ? 'grab' : 'gojek';
-                const type = (updatedOrder.courierType === 'sameday' || courierCheck.includes('sameday')) ? 'sameday' : 'instant';
+            const courierCheck = `${updatedOrder.courierCompany || ''} ${updatedOrder.courierType || ''} ${updatedOrder.customer?.courier || ''}`.toLowerCase();
+            if (courierCheck.includes('gojek') || courierCheck.includes('grab') || courierCheck.includes('same day') || courierCheck.includes('sameday') || courierCheck.includes('instant')) {
+                const { courierCompany, courierType } = normalizeBiteshipCourier(
+                    updatedOrder.courierCompany,
+                    updatedOrder.courierType,
+                    updatedOrder.customer?.courier
+                );
 
                 await createBiteshipOrder({
                     customer: {
@@ -1387,8 +1464,8 @@ app.put('/api/orders/:id/status', async (req, res) => {
                     },
                     destinationLatitude: updatedOrder.destinationLatitude || -6.2000,
                     destinationLongitude: updatedOrder.destinationLongitude || 106.8160,
-                    courierCompany: company,
-                    courierType: type,
+                    courierCompany: courierCompany,
+                    courierType: courierType,
                     items: updatedOrder.items
                 }, updatedOrder.orderId);
             }
@@ -1723,6 +1800,6 @@ app.post('/api/shipping/jne-generate-awb', async (req, res) => {
 });
 
 // HARUS menggunakan server.listen agar Socket.io berfungsi dengan Express
-server.listen(PORT, () => {
-    console.log(`Server berjalan di ${BASE_URL}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server berjalan di ${BASE_URL} (Port ${PORT})`);
 });
